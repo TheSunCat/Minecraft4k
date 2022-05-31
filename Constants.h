@@ -39,6 +39,7 @@
 #define BLOCK_MIRROR 9
 
 #define PLAYER_REACH 5.0f
+#define FOV 90.0f
 
 // COLORS
 
@@ -57,7 +58,7 @@
 #define vec3 YC_NIGHT = vec3(0.004f, 0.004f, 0.008f);
  */
 
-#define CANVAS_WIDTH 1920
-#define CANVAS_HEIGHT 1080
+#define SCR_WIDTH 1920
+#define SCR_HEIGHT 1080
 // #define KEY_HANDLING
 // #define DEBUG

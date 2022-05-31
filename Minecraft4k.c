@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <time.h>
 
 #include <SDL2/SDL.h>
 
@@ -16,8 +17,12 @@
 
 #include "Constants.h"
 
-// It's just the Java Random class
+static uint64_t currentTime()
+{
+    return /* TODO time(NULL)*/100;
+}
 
+// It's just the Java Random class
 #define RANDOM_seedUniquifier 8682522807148012
 #define RANDOM_multiplier 0x5DEECE66D
 #define RANDOM_addend 0xBL
@@ -32,8 +37,6 @@ static uint64_t RANDOM_initialScramble(const uint64_t seed)
 {
     return (seed ^ RANDOM_multiplier) & RANDOM_mask;
 }
-
-// TODO static uint64_t RANDOM_uniqueSeed();
 
 static uint64_t RANDOM_next(Random* rand, const int bits)
 {
@@ -176,13 +179,193 @@ float noise(float x, float y) { // stolen from Processing
     return r;
 }
 
+uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
+
+static void setBlock(int x, int y, int z, uint8_t block)
+{
+    world[x + y * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT] = block;
+}
+
+static uint8_t getBlock(int x, int y, int z)
+{
+    return world[x + y * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT];
+}
+
+static int isWithinWorld(int x, int y, int z)
+{
+    return x >= 0.0f && y >= 0.0f && z >= 0.0f &&
+           x < WORLD_SIZE && y < WORLD_HEIGHT && z < WORLD_SIZE;
+}
+
+GLuint shader;
 GLuint worldTexture;
 GLuint textureAtlas;
 
 GLuint textureAtlasTex;
 
+float cameraPitch = 0;
+float cameraYaw = 0;
+
+float playerVelocityX = 0, playerVelocityY = 0, playerVelocityZ = 0;
+float playerPosX = 0, playerPosY = 0, playerPosZ = 0;
+
+uint64_t lastFrameTime = 0;
+uint64_t lastUpdateTime;
+
 static void on_render ()
 {
+    const uint64_t frameTime = currentTime();
+    if(lastFrameTime == 0)
+    {
+        lastFrameTime = frameTime - 16;
+        lastUpdateTime = frameTime;
+    }
+
+    const uint64_t deltaTime = frameTime - lastFrameTime;
+    lastFrameTime = frameTime;
+
+    //updateMouse();
+    //updateController();
+
+    //if (needsResUpdate) {
+    //    updateScreenResolution();
+    //}
+
+    float sinYaw = my_sin(cameraYaw);
+    float cosYaw = my_cos(cameraYaw);
+    float sinPitch = my_sin(cameraPitch);
+    float cosPitch = my_cos(cameraPitch);
+
+    //lightDirection.y = my_sin(frameTime / 10000.0f);
+    //lightDirection.x = my_lightDirection.y * 0.5f;
+    //lightDirection.z = my_cos(frameTime / 10000.0f);
+
+    //lightDirection.normalize();
+
+    /*if (lightDirection.y < 0.0f)
+    {
+        sunColor = lerp(SC_TWILIGHT, SC_DAY, -lightDirection.y);
+        ambColor = lerp(AC_TWILIGHT, AC_DAY, -lightDirection.y);
+        skyColor = lerp(YC_TWILIGHT, YC_DAY, -lightDirection.y);
+    }
+    else {
+        sunColor = lerp(SC_TWILIGHT, SC_NIGHT, lightDirection.y);
+        ambColor = lerp(AC_TWILIGHT, AC_NIGHT, lightDirection.y);
+        skyColor = lerp(YC_TWILIGHT, YC_NIGHT, lightDirection.y);
+    }*/
+    
+    while (currentTime() - lastUpdateTime > 10)
+    {
+        const float inputX = /*controller.right*/1 * 0.02F;
+        const float inputZ = /*controller.forward*/1 * 0.02F;
+
+        playerVelocityX *= 0.5F;
+        playerVelocityY *= 0.99F;
+        playerVelocityZ *= 0.5F;
+
+        playerVelocityX += sinYaw * inputZ + cosYaw * inputX;
+        playerVelocityZ += cosYaw * inputZ - sinYaw * inputX;
+        playerVelocityY += 0.003F; // gravity
+
+        // calculate collision
+        for (int axis = 0; axis < 3; axis++) {
+            bool moveValid = true;
+
+            const float newPlayerPosX = playerPosX + playerVelocityX * (axis == 0);
+            const float newPlayerPosY = playerPosY + playerVelocityY * (axis == 1);
+            const float newPlayerPosZ =  playerPosZ + playerVelocityZ * (axis == 2);
+
+            for (int colliderIndex = 0; colliderIndex < 12; colliderIndex++) {
+                // magic
+                const int colliderBlockPosX = newPlayerPosX + (colliderIndex   % 2) * 0.6f - 0.3f;
+                const int colliderBlockPosY = newPlayerPosY + (colliderIndex/4 - 1) * 0.8f + 0.65f;
+                const int colliderBlockPosZ = newPlayerPosZ + (colliderIndex/2 % 2) * 0.6f - 0.3f;
+
+                if (colliderBlockPosY < 0) // ignore collision above the world height limit
+                    continue;
+
+                // check collision with world bounds and blocks
+                if (!isWithinWorld(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ)
+                    || getBlock(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ) != BLOCK_AIR) {
+
+                    if (axis == 1) // AXIS_Y
+                    {
+                        // if we're falling, colliding, and we press space
+                        if (/*controller.jump*/1 && playerVelocityY > 0.0f) {
+
+                            playerVelocityY = -0.1F; // jump
+                        }
+                        else { // we're on the ground, not jumping
+
+                            playerVelocityY = 0.0f; // prevent accelerating downwards infinitely
+                        }
+                    }
+
+                    moveValid = false;
+                    break;
+                }
+            }
+
+            if (moveValid) {
+                playerPosX = newPlayerPosX;
+                playerPosY = newPlayerPosY;
+                playerPosZ = newPlayerPosZ;
+            }
+        }
+
+        for (int colliderIndex = 0; colliderIndex < 12; colliderIndex++) {
+            int magicX = (int) (playerPosX +        ( colliderIndex       & 1) * 0.6F - 0.3F);
+            int magicY = (int) (playerPosY + (float)((colliderIndex >> 2) - 1) * 0.8F + 0.65F);
+            int magicZ = (int) (playerPosZ +        ( colliderIndex >> 1  & 1) * 0.6F - 0.3F);
+
+            // set block to air if inside player
+            if (isWithinWorld(magicX, magicY, magicZ))
+                setBlock(magicX, magicY, magicZ, BLOCK_AIR);
+        }
+
+        lastUpdateTime += 10;
+    }
+
+    //raycast(SCR_RES / 2.0f, hoveredBlockPos, placeBlockPos);
+
+    //prints(hoveredBlockPos); prints("\n");
+
+
+    // Compute the raytracing!
+    float frustumDivX = (SCR_WIDTH * FOV) / 120.f;
+    float frustumDivY = (SCR_HEIGHT * FOV) / 214.f;
+
+    glBindImageTexture(0, worldTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_R8UI);
+    glUniform2f(glGetUniformLocation(shader, "S"), SCR_WIDTH, SCR_HEIGHT);
+
+    glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
+    glUniform1i(glGetUniformLocation(shader, "t"), 0);
+
+    glUniform1f(glGetUniformLocation(shader, "c.cY"), my_cos(cameraYaw));
+    glUniform1f(glGetUniformLocation(shader, "c.cP"), my_cos(cameraPitch));
+    glUniform1f(glGetUniformLocation(shader, "c.sY"), my_sin(cameraYaw));
+    glUniform1f(glGetUniformLocation(shader, "c.sP"), my_sin(cameraPitch));
+    glUniform2f(glGetUniformLocation(shader, "c.fD"), frustumDivX, frustumDivY);
+    glUniform3f(glGetUniformLocation(shader, "c.P"), playerPosX, playerPosY, playerPosZ);
+/*
+#ifdef CLASSIC
+
+#else
+    computeShader.setVec3(PASS_STR("l"), lightDirection);
+    computeShader.setVec3(PASS_STR("k"), skyColor);
+    computeShader.setVec3(PASS_STR("a"), ambColor);
+    computeShader.setVec3(PASS_STR("s"), sunColor);
+#endif
+*/
+    /*glInvalidateTexImage(screenTexture, 0);
+
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    glDispatchCompute(GLuint((SCR_RES.x + WORK_GROUP_SIZE - 1) / WORK_GROUP_SIZE), GLuint((SCR_RES.y + WORK_GROUP_SIZE - 1) / WORK_GROUP_SIZE), 1);
+    glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+    glUseProgram(0)*/;
+
+    // render!!
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glRecti(-1,-1,1,1);
 }
 
@@ -307,13 +490,6 @@ static void generateTextures()
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
-
-static void setBlock(int x, int y, int z, uint8_t block)
-{
-    world[x + y * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT] = block;
-}
-
 static void generateWorld()
 {
     float maxTerrainHeight = WORLD_HEIGHT / 2.0f;
@@ -351,10 +527,8 @@ static void on_realize()
     GLint isCompiled = 0;
     glGetShaderiv(f, GL_COMPILE_STATUS, &isCompiled);
     if(isCompiled == GL_FALSE) {
-        GLint maxLength = 0;
-        glGetShaderiv(f, GL_INFO_LOG_LENGTH, &maxLength);
-
-        char* error = malloc(maxLength);
+        const int maxLength = 256;
+        GLchar* error[maxLength];
         glGetShaderInfoLog(f, maxLength, &maxLength, error);
         printf("%s\n", error);
 
@@ -363,26 +537,24 @@ static void on_realize()
 #endif
 
     // link shader
-    GLuint p = glCreateProgram();
-    glAttachShader(p,f);
-    glLinkProgram(p);
+    shader = glCreateProgram();
+    glAttachShader(shader, f);
+    glLinkProgram(shader);
 
 #ifdef DEBUG
     GLint isLinked = 0;
-    glGetProgramiv(p, GL_LINK_STATUS, (int *)&isLinked);
+    glGetProgramiv(shader, GL_LINK_STATUS, (int *)&isLinked);
     if (isLinked == GL_FALSE) {
-        GLint maxLength = 0;
-        glGetProgramiv(p, GL_INFO_LOG_LENGTH, &maxLength);
-
-        char* error = malloc(maxLength);
-        glGetProgramInfoLog(p, maxLength, &maxLength,error);
+        const int maxLength = 256;
+        GLchar* error[maxLength]; 
+        glGetProgramInfoLog(shader, maxLength, &maxLength,error);
         printf("%s\n", error);
 
         exit(-10);
     }
 #endif
 
-    glUseProgram(p);
+    glUseProgram(shader);
 
     // initBuffers
     GLfloat vertices[] = {
@@ -449,8 +621,8 @@ void _start() {
         "",
         0,
         0,
-        CANVAS_WIDTH,
-        CANVAS_HEIGHT,
+        SCR_WIDTH,
+        SCR_HEIGHT,
         SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN
     );
 
