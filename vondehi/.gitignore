@@ -1,0 +1,8 @@
+_old/
+*.xz
+*.gz
+*.lzma
+testbin
+vondehi
+test
+data
