@@ -1,4 +1,3 @@
-
 DEBUG=false
 
 CFLAGS := -fno-plt -O1 -std=gnu11 -nostartfiles -Wall -Wextra

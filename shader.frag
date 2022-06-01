@@ -1,7 +1,6 @@
 #version 430
 //layout(local_size_x = 16, local_size_y = 16) int SHADER_MINIFIER_WORKAROUND; // bugs galore
-layout(rgba32f, binding = 0) writeonly uniform image2D img_output;
-layout(r8ui, binding = 1) readonly uniform uimage3D world;
+layout(r8ui, binding = 0) readonly uniform uimage3D world;
 
 out vec4 fragColor;
 
@@ -75,6 +74,8 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, in vec3 fogColo
     dist += max(ijkStep, vec3(0));
     dist *= vInverted;
 
+    //return vec3(getBlock(ijk + ivec3(0, 2, 0)) / 8.0f);
+
     int axis = 0; // X
 
     rayTravelDist = 0;
@@ -96,6 +97,7 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, in vec3 fogColo
             int texFetchX = int(mod((hitPos.x + hitPos.z) * TR, TR));
             int texFetchY = int(mod(hitPos.y * TR, TR) + TR);
 
+            return vec3(texFetchX / 40.f);
 
             if (axis == 1) // Y. we hit the top/bottom of block
             {
@@ -200,7 +202,6 @@ vec3 getPixel(in vec2 pixel_coords)
                                  frustumRay.y * c.cP - c.sP,
                                  temp * c.cY - frustumRay.x * c.sY));
 
-
     const vec3 fogColor = mix(k, s, 0.5 * pow(clamp(dot(rayDir, l), 0, 1) + 0.2, 5));
 
     // raymarch outputs
@@ -241,10 +242,5 @@ vec3 getPixel(in vec2 pixel_coords)
 
 void main()
 {
-    // Normalized pixel coordinates (from -1 to 1)
-    vec2 iResolution = vec2(1920.0, 1080.0);
-    vec2 uv = (gl_FragCoord.xy/iResolution.xy)*2.0 - vec2(1.0,1.0);
-    uv.y *= iResolution.y/iResolution.x;
-
-    fragColor = vec4(vec3(c.P.y/64.f), 1.0);//getPixel(gl_FragCoord);
+    fragColor = vec4(getPixel(vec2(gl_FragCoord.x, 1.0f - gl_FragCoord.y)), 1.0);
 }

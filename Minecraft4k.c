@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <time.h>
 
 #include <SDL2/SDL.h>
 
@@ -19,7 +18,7 @@
 
 static uint64_t currentTime()
 {
-    return /* TODO time(NULL)*/100;
+    return SDL_GetTicks64();
 }
 
 // It's just the Java Random class
@@ -179,6 +178,15 @@ float noise(float x, float y) { // stolen from Processing
     return r;
 }
 
+float clamp(float x, float min, float max)
+{
+    if(x < min)
+        return min;
+    if(x > max)
+        return max;
+    return x;
+}
+
 uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
 
 static void setBlock(int x, int y, int z, uint8_t block)
@@ -197,6 +205,8 @@ static int isWithinWorld(int x, int y, int z)
            x < WORLD_SIZE && y < WORLD_HEIGHT && z < WORLD_SIZE;
 }
 
+SDL_Window* window;
+
 GLuint shader;
 GLuint worldTexture;
 GLuint textureAtlas;
@@ -208,6 +218,25 @@ float cameraYaw = 0;
 
 float playerVelocityX = 0, playerVelocityY = 0, playerVelocityZ = 0;
 float playerPosX = 0, playerPosY = 0, playerPosZ = 0;
+
+void updateMouse()
+{
+    int x, y;
+    SDL_GetMouseState(&x, &y);
+    SDL_WarpMouseInWindow(window, SCR_WIDTH / 2, SCR_HEIGHT / 2);
+
+    cameraYaw += (x - (SCR_WIDTH / 2)) / 500.0f;
+    cameraPitch -= (y - (SCR_HEIGHT / 2)) / 500.0f;
+
+    if(fabs(cameraYaw) > M_PI)
+    {
+        if (cameraYaw > 0)
+            cameraYaw = -M_PI - (cameraYaw - M_PI);
+        else
+            cameraYaw = M_PI + (cameraYaw + M_PI);
+    }
+    cameraPitch = clamp(cameraPitch, -M_PI / 2.0f, M_PI / 2.0f);
+}
 
 uint64_t lastFrameTime = 0;
 uint64_t lastUpdateTime;
@@ -224,7 +253,7 @@ static void on_render ()
     const uint64_t deltaTime = frameTime - lastFrameTime;
     lastFrameTime = frameTime;
 
-    //updateMouse();
+    updateMouse();
     //updateController();
 
     //if (needsResUpdate) {
@@ -617,7 +646,7 @@ void _start() {
     asm volatile("sub $8, %rsp\n");
 
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
-    SDL_Window* mainwindow = SDL_CreateWindow(
+    window = SDL_CreateWindow(
         "",
         0,
         0,
@@ -626,18 +655,18 @@ void _start() {
         SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN
     );
 
-    SDL_GL_CreateContext(mainwindow);
-    SDL_ShowCursor(false);
-    // TODO SDL_SetRelativeMouseMode(true);
+    SDL_GL_CreateContext(window);
+    SDL_ShowCursor(SDL_TRUE);
+    SDL_SetRelativeMouseMode(SDL_TRUE);
     
     on_realize();
 
     while (true) {
-        SDL_Event Event;
-        while (SDL_PollEvent(&Event)) {
-            if (Event.type == SDL_QUIT
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT
 #if defined(KEY_HANDLING)
-                || (Event.type == SDL_KEYDOWN && Event.key.keysym.sym == SDLK_ESCAPE)
+                || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)
 #endif
             ) {
                 asm volatile(".intel_syntax noprefix");
@@ -648,11 +677,10 @@ void _start() {
                 asm volatile(".att_syntax prefix");
                 __builtin_unreachable();
             }
-            if (Event.type == SDL_WINDOWEVENT && Event.window.event == SDL_WINDOWEVENT_EXPOSED) {
-                on_render();
-                SDL_GL_SwapWindow(mainwindow);
-            }
         }
+
+        on_render();
+        SDL_GL_SwapWindow(window);
     }
     __builtin_unreachable();
 }
