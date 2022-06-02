@@ -17,11 +17,6 @@ all : checkgccversion Minecraft4k
 noelfver:
 	make -C noelfver
 
-checkgccversion :
-ifneq ($(shell expr `gcc -dumpversion`),8.3.0)
-#	$(error GCC version must be 8.3.0)
-endif
-
 packer : vondehi/vondehi.asm 
 	cd vondehi; nasm -fbin -o vondehi vondehi.asm
 
@@ -53,7 +48,7 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 	chmod +x $@
 
 %.xz : % Makefile
-	-rm $@
+	-rm -f $@
 	lzma --format=lzma -9 --extreme --lzma1=preset=9,lc=0,lp=0,pb=0,nice=40,depth=32,dict=16384 --keep --stdout $< > $@
 
 %.packed : %.xz packer Makefile

@@ -364,11 +364,15 @@ static void on_render ()
     float frustumDivX = (SCR_WIDTH * FOV) / 120.f;
     float frustumDivY = (SCR_HEIGHT * FOV) / 214.f;
 
-    glBindImageTexture(0, worldTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_R8UI);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_3D, worldTexture);
+    glUniform1i(glGetUniformLocation(shader, "W"), 0);
+
     glUniform2f(glGetUniformLocation(shader, "S"), SCR_WIDTH, SCR_HEIGHT);
 
+    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
-    glUniform1i(glGetUniformLocation(shader, "t"), 0);
+    glUniform1i(glGetUniformLocation(shader, "t"), 1);
 
     glUniform1f(glGetUniformLocation(shader, "c.cY"), my_cos(cameraYaw));
     glUniform1f(glGetUniformLocation(shader, "c.cP"), my_cos(cameraPitch));
@@ -556,7 +560,7 @@ static void on_realize()
     GLint isCompiled = 0;
     glGetShaderiv(f, GL_COMPILE_STATUS, &isCompiled);
     if(isCompiled == GL_FALSE) {
-        const int maxLength = 256;
+        const int maxLength = 1024;
         GLchar* error[maxLength];
         glGetShaderInfoLog(f, maxLength, &maxLength, error);
         printf("%s\n", error);
@@ -574,7 +578,7 @@ static void on_realize()
     GLint isLinked = 0;
     glGetProgramiv(shader, GL_LINK_STATUS, (int *)&isLinked);
     if (isLinked == GL_FALSE) {
-        const int maxLength = 256;
+        const int maxLength = 1024;
         GLchar* error[maxLength]; 
         glGetProgramInfoLog(shader, maxLength, &maxLength,error);
         printf("%s\n", error);
@@ -618,9 +622,9 @@ static void on_realize()
     glGenTextures(1, &worldTexture);
     glBindTexture(GL_TEXTURE_3D, worldTexture);
 
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);//GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);//GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);//GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -636,8 +640,6 @@ static void on_realize()
         GL_RED,                                 // format
         GL_UNSIGNED_BYTE,                       // type
         world);                                 // pixels
-
-    glBindTexture(GL_TEXTURE_3D, 0);
 
     generateTextures();
 }

@@ -1,23 +1,13 @@
-#version 430
-//layout(local_size_x = 16, local_size_y = 16) int SHADER_MINIFIER_WORKAROUND; // bugs galore
-layout(r8ui, binding = 0) readonly uniform uimage3D world;
+#version 330
 
-out vec4 fragColor;
-
-// WORLD_SIZE
-#define WS 512
-
-// WORLD_HEIGHT
-#define WH 64
+// WORLD_DIMENSIONS
+#define WD vec3(512, 64, 512)
 
 // TEXTURE_RES
 #define TR 16
 
 // RENDER_DIST
 #define RD 80.0
-
-// textureAtlas
-uniform sampler2D t;
 
 struct C // Camera
 {
@@ -40,16 +30,25 @@ uniform vec3 k; // skyColor
 uniform vec3 a; // ambColor
 uniform vec3 s; // sunColor
 
+// world (texture 0)
+uniform sampler3D W;
+
+// textureAtlas (texture 1)
+uniform sampler2D t;
+
+// fragColor
+out vec4 F;
+
 // get the block at the specified position in the world
 int getBlock(ivec3 coords)
 {
-    return int(imageLoad(world, coords).x);
+    return (texture(W, coords / WD).x > 0) ? 8 : 0;
 }
 
 bool inWorld(ivec3 pos)
 {
-    const vec3 lessThanWorld = step(vec3(0, -2, 0), pos);
-    const vec3 greaterThanWorld = step(vec3(WS, WH, WS), pos);
+    vec3 lessThanWorld = step(vec3(0, -2, 0), pos);
+    vec3 greaterThanWorld = step(WD, pos);
 
     return dot(lessThanWorld, lessThanWorld) * dot(greaterThanWorld, greaterThanWorld) == 0;
 }
@@ -193,16 +192,16 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, in vec3 fogColo
 
 vec3 getPixel(in vec2 pixel_coords)
 {
-    const vec2 frustumRay = (pixel_coords - (0.5 * S)) / c.fD;
+    vec2 frustumRay = (pixel_coords - (0.5 * S)) / c.fD;
 
     // rotate frustum space to world space
-    const float temp = c.cP + frustumRay.y * c.sP;
+    float temp = c.cP + frustumRay.y * c.sP;
     
     vec3 rayDir = normalize(vec3(frustumRay.x * c.cY + temp * c.sY,
                                  frustumRay.y * c.cP - c.sP,
                                  temp * c.cY - frustumRay.x * c.sY));
 
-    const vec3 fogColor = mix(k, s, 0.5 * pow(clamp(dot(rayDir, l), 0, 1) + 0.2, 5));
+    vec3 fogColor = mix(k, s, 0.5 * pow(clamp(dot(rayDir, l), 0, 1) + 0.2, 5));
 
     // raymarch outputs
     vec3 hitPos;
@@ -242,5 +241,5 @@ vec3 getPixel(in vec2 pixel_coords)
 
 void main()
 {
-    fragColor = vec4(getPixel(vec2(gl_FragCoord.x, 1.0f - gl_FragCoord.y)), 1.0);
+    F = vec4(getPixel(vec2(gl_FragCoord.x, 1.0f - gl_FragCoord.y)), 1.0);
 }
