@@ -57,4 +57,4 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 	wc -c $@
 
 clean :
-	-rm *.elf shader.h Minecraft4k
+#	-rm *.elf shader.h Minecraft4k

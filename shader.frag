@@ -11,18 +11,14 @@
 
 struct C // Camera
 {
-    vec3 P;
-    float cY;
-    float cP;
-    float sY;
-    float sP;
-    vec2 fD;
+    float cY;    // cosYaw
+    float cP;    // cosPitch
+    float sY;    // sinYaw
+    float sP;    // sinPitch
+    vec2 f;     // frustumDiv
+    vec3 P;     // Position
 };
 uniform C c; // camera
-
-// screenSize
-uniform vec2 S;
-
 
 // lighting
 uniform vec3 l; // lightDirection
@@ -34,7 +30,7 @@ uniform vec3 s; // sunColor
 uniform sampler3D W;
 
 // textureAtlas (texture 1)
-uniform sampler2D t;
+uniform sampler2D T;
 
 // fragColor
 out vec4 F;
@@ -42,7 +38,7 @@ out vec4 F;
 // get the block at the specified position in the world
 int getBlock(ivec3 coords)
 {
-    return (texture(W, coords / WD).x > 0) ? 8 : 0;
+    return int(length(texture(W, coords / WD)));
 }
 
 bool inWorld(ivec3 pos)
@@ -91,12 +87,10 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, in vec3 fogColo
         {
             hitPos = start + velocity * rayTravelDist;
             
-
+            
             // side of block
             int texFetchX = int(mod((hitPos.x + hitPos.z) * TR, TR));
             int texFetchY = int(mod(hitPos.y * TR, TR) + TR);
-
-            return vec3(texFetchX / 40.f);
 
             if (axis == 1) // Y. we hit the top/bottom of block
             {
@@ -107,9 +101,11 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, in vec3 fogColo
                     texFetchY += TR * 2;
             }
 
-            vec3 textureColor = vec3(texture(t,
+            vec3 textureColor = vec3(texture(T,
                                             vec2((texFetchX + (blockHit * TR) + 0.5) / float(TR * 16.0),
                                             (texFetchY + 0.5) / float(TR * 3.0))));
+
+            return textureColor;
         
 
             if (dot(textureColor, textureColor) != 0) { // pixel is not transparent
@@ -192,7 +188,7 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, in vec3 fogColo
 
 vec3 getPixel(in vec2 pixel_coords)
 {
-    vec2 frustumRay = (pixel_coords - (0.5 * S)) / c.fD;
+    vec2 frustumRay = (pixel_coords - (0.5 /* S*/)) / c.f; // TODO do I mult by SCREEN_SIZE?
 
     // rotate frustum space to world space
     float temp = c.cP + frustumRay.y * c.sP;

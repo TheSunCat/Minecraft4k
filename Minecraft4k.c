@@ -27,34 +27,31 @@ static uint64_t currentTime()
 #define RANDOM_addend 0xBL
 #define RANDOM_mask ((((uint64_t)1) << 48) - 1)
 
-typedef struct Random
-{
-    uint64_t seed;
-} Random;
+typedef uint64_t Random;
 
 static uint64_t RANDOM_initialScramble(const uint64_t seed)
 {
     return (seed ^ RANDOM_multiplier) & RANDOM_mask;
 }
 
-static uint64_t RANDOM_next(Random* rand, const int bits)
+static uint64_t RANDOM_next(Random rand, const int bits)
 {
-    rand->seed = (rand->seed * RANDOM_multiplier + RANDOM_addend) & RANDOM_mask;
+    rand = (rand * RANDOM_multiplier + RANDOM_addend) & RANDOM_mask;
 
-    return rand->seed >> (48 - bits);
+    return rand >> (48 - bits);
 }
 
-static float nextFloat(Random* rand)
+static float nextFloat(Random rand)
 {
     return ((float) RANDOM_next(rand, 24)) / ((float) (1 << 24));
 }
 
-uint32_t nextInt(Random* rand)
+uint32_t nextInt(Random rand)
 {
     return RANDOM_next(rand, 32);
 }
 
-uint32_t nextIntBound(Random* rand, uint32_t bound)
+uint32_t nextIntBound(Random rand, uint32_t bound)
 {
     uint32_t r = RANDOM_next(rand, 31);
     const uint32_t m = bound - 1;
@@ -68,14 +65,14 @@ uint32_t nextIntBound(Random* rand, uint32_t bound)
     return r;
 }
 
-uint64_t nextLong(Random* rand)
+uint64_t nextLong(Random rand)
 {
     return (((uint64_t)RANDOM_next(rand, 32)) << 32) + RANDOM_next(rand, 32);
 }
 
 static Random makeRandom(uint64_t seed)
 {
-    return (Random) { RANDOM_initialScramble(seed) };
+    return RANDOM_initialScramble(seed);
 }
 
 // Perlin noise
@@ -119,7 +116,7 @@ float noise(float x, float y) { // stolen from Processing
         Random r = makeRandom(18295169L);
 
         for (int i = 0; i < PERLIN_RES + 1; i++)
-            perlin[i] = nextFloat(&r);
+            perlin[i] = nextFloat(r);
     }
 
     if (x < 0)
@@ -368,17 +365,15 @@ static void on_render ()
     glBindTexture(GL_TEXTURE_3D, worldTexture);
     glUniform1i(glGetUniformLocation(shader, "W"), 0);
 
-    glUniform2f(glGetUniformLocation(shader, "S"), SCR_WIDTH, SCR_HEIGHT);
-
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
-    glUniform1i(glGetUniformLocation(shader, "t"), 1);
+    glUniform1i(glGetUniformLocation(shader, "T"), 1);
 
     glUniform1f(glGetUniformLocation(shader, "c.cY"), my_cos(cameraYaw));
     glUniform1f(glGetUniformLocation(shader, "c.cP"), my_cos(cameraPitch));
     glUniform1f(glGetUniformLocation(shader, "c.sY"), my_sin(cameraYaw));
     glUniform1f(glGetUniformLocation(shader, "c.sP"), my_sin(cameraPitch));
-    glUniform2f(glGetUniformLocation(shader, "c.fD"), frustumDivX, frustumDivY);
+    glUniform2f(glGetUniformLocation(shader, "c.f"), frustumDivX, frustumDivY);
     glUniform3f(glGetUniformLocation(shader, "c.P"), playerPosX, playerPosY, playerPosZ);
 /*
 #ifdef CLASSIC
@@ -414,14 +409,14 @@ static void generateTextures()
     // procedurally generates the 16x3 textureAtlas
     // gsd = grayscale detail
     for (int blockID = 1; blockID < 16; blockID++) {
-        int gsd_tempA = 0xFF - nextIntBound(&rand, 0x60);
+        int gsd_tempA = 0xFF - nextIntBound(rand, 0x60);
 
         for (int y = 0; y < TEXTURE_RES * 3; y++) {
             for (int x = 0; x < TEXTURE_RES; x++) {
                 // gets executed per pixel/texel
 
-                if (blockID != BLOCK_STONE || nextIntBound(&rand, 3) == 0) // if the block type is stone, update the noise value less often to get a stretched out look
-                    gsd_tempA = 0xFF - nextIntBound(&rand, 0x60);
+                if (blockID != BLOCK_STONE || nextIntBound(rand, 3) == 0) // if the block type is stone, update the noise value less often to get a stretched out look
+                    gsd_tempA = 0xFF - nextIntBound(rand, 0x60);
 
                 int tint = 0x966C4A; // brown (dirt)
                 switch (blockID)
@@ -466,9 +461,9 @@ static void generateTextures()
                         if (dy > dx)
                             dx = dy;
 
-                        gsd_tempA = 196 - nextIntBound(&rand, 32) + dx % 3 * 32;
+                        gsd_tempA = 196 - nextIntBound(rand, 32) + dx % 3 * 32;
                     }
-                    else if (nextIntBound(&rand, 2) == 0) {
+                    else if (nextIntBound(rand, 2) == 0) {
                         // make the gsd 50% brighter on random pixels of the bark
                         // and 50% darker if x happens to be odd
                         gsd_tempA = gsd_tempA * (150 - (x & 1) * 100) / 100;
@@ -490,7 +485,7 @@ static void generateTextures()
 
                 if (blockID == BLOCK_LEAVES) {
                     tint = 0x50D937; // green
-                    if (nextIntBound(&rand, 2) == 0) {
+                    if (nextIntBound(rand, 2) == 0) {
                         tint = 0;
                         gsd_constexpr = 0xFF;
                     }
@@ -535,8 +530,8 @@ static void generateWorld()
             for (int z = 0; z < WORLD_SIZE; z++) {
                 uint8_t block;
 
-                if (y > maxTerrainHeight + nextIntBound(&rand, 8))
-                    block = nextIntBound(&rand, 8) + 1;
+                if (y > maxTerrainHeight + nextIntBound(rand, 8))
+                    block = nextIntBound(rand, 8) + 1;
                 else
                     block = BLOCK_AIR;
 
