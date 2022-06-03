@@ -1,4 +1,4 @@
-#version 330
+#version 130
 
 // WORLD_DIMENSIONS
 #define WD vec3(512, 64, 512)
