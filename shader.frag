@@ -47,7 +47,7 @@ bool inWorld(ivec3 pos)
 
 // Voxel ray marching from http://www.cse.chalmers.se/edu/year/2010/course/TDA361/grid.pdf
 // Optimized by keeping block lookups within the current chunk, which minimizes bitshifts, masks and multiplication operations
-vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, out bool hit, out vec3 hitPos, out float rayTravelDist)
+vec3 rayMarch(vec3 start, vec3 velocity, float maximum)
 {
     // Determine the chunk-relative position of the ray using a bit-mask
     ivec3 ijk = ivec3(start);
@@ -65,7 +65,7 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, out bool hit, o
 
     int axis = 0; // X
 
-    rayTravelDist = 0;
+    float rayTravelDist = 0;
 
     while (rayTravelDist <= maximum)
     {
@@ -77,7 +77,7 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, out bool hit, o
 
         if (blockHit != 0) // BLOCK_AIR
         {
-            hitPos = start + velocity * rayTravelDist;
+            vec3 hitPos = start + velocity * rayTravelDist;
             
             return vec3(0.5);
             
@@ -105,7 +105,6 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, out bool hit, o
 
             if (dot(textureColor, textureColor) != 0) { // pixel is not transparent
             
-                hit = true;
                 hitPos = start + velocity * (rayTravelDist - 0.01f);
 
 
@@ -165,8 +164,6 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, out bool hit, o
         }
     }
 
-    hit = false;
-
     // storing in vInverted to work around Shader_Minifier bug
     vInverted = vec3(0);
 
@@ -185,10 +182,7 @@ vec3 getPixel(in vec2 pixel_coords)
                                  temp * c.cY - frustumRay.x * c.sY));
 
     // raymarch outputs
-    vec3 hitPos;
-    bool hit;
-    float hitDist;
-    return rayMarch(c.P, rayDir, RD, hit, hitPos, hitDist);
+    return rayMarch(c.P, rayDir, RD);
 }
 
 void main()
