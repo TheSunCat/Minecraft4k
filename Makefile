@@ -26,7 +26,7 @@ shader.h : shader.frag Makefile
 	mono ./shader_minifier.exe --preserve-externals shader.frag -o shader.h
 
 Minecraft4k.elf : Minecraft4k.c shader.h Makefile
-	gcc -o $@ $<  -lSDL2 -lGL $(CFLAGS) 
+	gcc -o $@ $<  -lSDL2 -lGL $(CFLAGS)
 
 Minecraft4k : Minecraft4k_opt.elf.packed
 	mv $< $@
@@ -41,8 +41,6 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 	sstrip $@
 	./noelfver/noelfver $@ > $@.nover
 	mv $@.nover $@
-	#remove section header
-#	./Section-Header-Stripper/section-stripper.py $@
 
 	#clear out useless bits
 	sed -i 's/_edata/\x00\x00\x00\x00\x00\x00/g' $@;

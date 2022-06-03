@@ -32,7 +32,7 @@ out vec4 F;
 // get the block at the specified position in the world
 int getBlock(ivec3 coords)
 {
-    return int(length(texture(W, coords / WD)));
+    return int(length(texture(W, coords / WD) * 8));
 }
 
 bool inWorld(ivec3 pos)
@@ -43,23 +43,34 @@ bool inWorld(ivec3 pos)
     return dot(lessThanWorld, lessThanWorld) * dot(greaterThanWorld, greaterThanWorld) == 0;
 }
 
-// ~~stolen~~ took "inspiration" from https://github.com/Vercidium/voxel-ray-marching/blob/master/source/Map.cs
-
-// Voxel ray marching from http://www.cse.chalmers.se/edu/year/2010/course/TDA361/grid.pdf
-// Optimized by keeping block lookups within the current chunk, which minimizes bitshifts, masks and multiplication operations
-vec3 rayMarch(vec3 start, vec3 velocity, float maximum)
+vec3 getPixel(in vec2 pixel_coords)
 {
+    vec2 frustumRay = (pixel_coords - (0.5 /* S*/)) / c.f; // TODO do I mult by SCREEN_SIZE?
+
+    // rotate frustum space to world space
+    float temp = c.cP + frustumRay.y * c.sP;
+    
+    vec3 rayDir = normalize(vec3(frustumRay.x * c.cY + temp * c.sY,
+                                 frustumRay.y * c.cP - c.sP,
+                                 temp * c.cY - frustumRay.x * c.sY));
+
+    // raymarch outputs
+
+    // ~~stolen~~ took "inspiration" from https://github.com/Vercidium/voxel-ray-marching/blob/master/source/Map.cs
+    // Voxel ray marching from http://www.cse.chalmers.se/edu/year/2010/course/TDA361/grid.pdf
+    // Optimized by keeping block lookups within the current chunk, which minimizes bitshifts, masks and multiplication operations
+
     // Determine the chunk-relative position of the ray using a bit-mask
-    ivec3 ijk = ivec3(start);
+    ivec3 ijk = ivec3(c.P);
 
     // The amount to increase i, j and k in each axis (either 1 or -1)
-    ivec3 ijkStep = ivec3(sign(velocity));
+    ivec3 ijkStep = ivec3(sign(rayDir));
 
     // This variable is used to track the current progress throughout the ray march
-    vec3 vInverted = abs(1 / velocity);
+    vec3 vInverted = abs(1 / rayDir);
 
     // The distance to the closest voxel boundary in units of rayTravelDist
-    vec3 dist = -fract(start) * ijkStep;
+    vec3 dist = -fract(c.P) * ijkStep;
     dist += max(ijkStep, vec3(0));
     dist *= vInverted;
 
@@ -67,7 +78,7 @@ vec3 rayMarch(vec3 start, vec3 velocity, float maximum)
 
     float rayTravelDist = 0;
 
-    while (rayTravelDist <= maximum)
+    while (rayTravelDist <= RD) // RENDER_DIST
     {
         // Exit check
         if(!inWorld(ijk))
@@ -77,7 +88,7 @@ vec3 rayMarch(vec3 start, vec3 velocity, float maximum)
 
         if (blockHit != 0) // BLOCK_AIR
         {
-            vec3 hitPos = start + velocity * rayTravelDist;
+            vec3 hitPos = c.P + rayDir * rayTravelDist;
             
             return vec3(0.5);
             
@@ -90,7 +101,7 @@ vec3 rayMarch(vec3 start, vec3 velocity, float maximum)
                 texFetchX = int(mod(hitPos.x * TR, TR));
                 texFetchY = int(mod(hitPos.z * TR, TR));
 
-                if (velocity.y < 0.0F) // looking at the underside of a block
+                if (rayDir.y < 0.0F) // looking at the underside of a block
                     texFetchY += TR * 2;
             }
 
@@ -105,10 +116,10 @@ vec3 rayMarch(vec3 start, vec3 velocity, float maximum)
 
             if (dot(textureColor, textureColor) != 0) { // pixel is not transparent
             
-                hitPos = start + velocity * (rayTravelDist - 0.01f);
+                hitPos = start + rayDir * (rayTravelDist - 0.01f);
 
 
-                float lightIntensity = 1 + (-sign(velocity[axis]) * l[axis]) / 2.0f;
+                float lightIntensity = 1 + (-sign(rayDir[axis]) * l[axis]) / 2.0f;
 
                 // storing in vInverted to work around Shader_Minifier bug
                 float fogIntensity = ((rayTravelDist / RD)) * (0xFF - (axis + 2) % 3 * 50) / 0xFF;
@@ -134,7 +145,7 @@ vec3 rayMarch(vec3 start, vec3 velocity, float maximum)
                 dist.y += vInverted.y;
 
                 // For collision purposes we also store the last axis that the ray collided with
-                // This allows us to reflect particle velocity on the correct axis
+                // This allows us to reflect particle rayDir on the correct axis
                 axis = 1; // Y
             }
             else
@@ -168,21 +179,6 @@ vec3 rayMarch(vec3 start, vec3 velocity, float maximum)
     vInverted = vec3(0);
 
     return vInverted;
-}
-
-vec3 getPixel(in vec2 pixel_coords)
-{
-    vec2 frustumRay = (pixel_coords - (0.5 /* S*/)) / c.f; // TODO do I mult by SCREEN_SIZE?
-
-    // rotate frustum space to world space
-    float temp = c.cP + frustumRay.y * c.sP;
-    
-    vec3 rayDir = normalize(vec3(frustumRay.x * c.cY + temp * c.sY,
-                                 frustumRay.y * c.cP - c.sP,
-                                 temp * c.cY - frustumRay.x * c.sY));
-
-    // raymarch outputs
-    return rayMarch(c.P, rayDir, RD);
 }
 
 void main()
