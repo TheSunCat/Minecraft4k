@@ -51,18 +51,21 @@ uint32_t nextInt(Random rand)
     return RANDOM_next(rand, 32);
 }
 
-uint32_t nextIntBound(Random rand, uint32_t bound)
+uint32_t nextIntBound(Random rand, int32_t bound)
 {
     uint32_t r = RANDOM_next(rand, 31);
-    const uint32_t m = bound - 1;
-    if ((bound & m) == 0)  // i.e., bound is a power of 2
-        r = ((uint32_t)bound) * (((uint64_t)r) >> 31);
-    else {
-        for (uint32_t u = r;
-            u - (r = u % bound) + m < 0;
-            u = RANDOM_next(rand, 31));
-    }
-    return r;
+
+    if ((bound & (-bound)) == bound)  // i.e., bound is a power of 2
+        return ((uint32_t)bound) * (r >> 31);
+        
+    int32_t bits = 0, val = 0;
+
+    do {
+        bits = RANDOM_next(rand, 31);
+        val = bits % bound;
+    } while (bits - val + (bound-1) < 0);
+    
+    return val;
 }
 
 uint64_t nextLong(Random rand)
@@ -261,24 +264,6 @@ static void on_render ()
     float cosYaw = my_cos(cameraYaw);
     float sinPitch = my_sin(cameraPitch);
     float cosPitch = my_cos(cameraPitch);
-
-    //lightDirection.y = my_sin(frameTime / 10000.0f);
-    //lightDirection.x = my_lightDirection.y * 0.5f;
-    //lightDirection.z = my_cos(frameTime / 10000.0f);
-
-    //lightDirection.normalize();
-
-    /*if (lightDirection.y < 0.0f)
-    {
-        sunColor = lerp(SC_TWILIGHT, SC_DAY, -lightDirection.y);
-        ambColor = lerp(AC_TWILIGHT, AC_DAY, -lightDirection.y);
-        skyColor = lerp(YC_TWILIGHT, YC_DAY, -lightDirection.y);
-    }
-    else {
-        sunColor = lerp(SC_TWILIGHT, SC_NIGHT, lightDirection.y);
-        ambColor = lerp(AC_TWILIGHT, AC_NIGHT, lightDirection.y);
-        skyColor = lerp(YC_TWILIGHT, YC_NIGHT, lightDirection.y);
-    }*/
     
     while (currentTime() - lastUpdateTime > 10)
     {
@@ -317,7 +302,7 @@ static void on_render ()
                     if (axis == 1) // AXIS_Y
                     {
                         // if we're falling, colliding, and we press space
-                        if (/*controller.jump*/1 && playerVelocityY > 0.0f) {
+                        if (/*controller.jump*/0 && playerVelocityY > 0.0f) {
 
                             playerVelocityY = -0.1F; // jump
                         }
@@ -352,10 +337,7 @@ static void on_render ()
         lastUpdateTime += 10;
     }
 
-    //raycast(SCR_RES / 2.0f, hoveredBlockPos, placeBlockPos);
-
-    //prints(hoveredBlockPos); prints("\n");
-
+    // TODO raycast(SCR_RES / 2.0f, hoveredBlockPos, placeBlockPos);
 
     // Compute the raytracing!
     float frustumDivX = (SCR_WIDTH * FOV) / 120.f;
@@ -369,31 +351,14 @@ static void on_render ()
     glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
     glUniform1i(glGetUniformLocation(shader, "T"), 1);
 
-    glUniform1f(glGetUniformLocation(shader, "c.cY"), my_cos(cameraYaw));
-    glUniform1f(glGetUniformLocation(shader, "c.cP"), my_cos(cameraPitch));
-    glUniform1f(glGetUniformLocation(shader, "c.sY"), my_sin(cameraYaw));
-    glUniform1f(glGetUniformLocation(shader, "c.sP"), my_sin(cameraPitch));
+    glUniform1f(glGetUniformLocation(shader, "c.cY"), cosYaw);
+    glUniform1f(glGetUniformLocation(shader, "c.cP"), cosPitch);
+    glUniform1f(glGetUniformLocation(shader, "c.sY"), sinYaw);
+    glUniform1f(glGetUniformLocation(shader, "c.sP"), sinPitch);
     glUniform2f(glGetUniformLocation(shader, "c.f"), frustumDivX, frustumDivY);
     glUniform3f(glGetUniformLocation(shader, "c.P"), playerPosX, playerPosY, playerPosZ);
-/*
-#ifdef CLASSIC
-
-#else
-    computeShader.setVec3(PASS_STR("l"), lightDirection);
-    computeShader.setVec3(PASS_STR("k"), skyColor);
-    computeShader.setVec3(PASS_STR("a"), ambColor);
-    computeShader.setVec3(PASS_STR("s"), sunColor);
-#endif
-*/
-    /*glInvalidateTexImage(screenTexture, 0);
-
-    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-    glDispatchCompute(GLuint((SCR_RES.x + WORK_GROUP_SIZE - 1) / WORK_GROUP_SIZE), GLuint((SCR_RES.y + WORK_GROUP_SIZE - 1) / WORK_GROUP_SIZE), 1);
-    glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
-    glUseProgram(0)*/;
 
     // render!!
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glRecti(-1,-1,1,1);
 }
 
@@ -531,7 +496,7 @@ static void generateWorld()
                 uint8_t block;
 
                 if (y > maxTerrainHeight + nextIntBound(rand, 8))
-                    block = nextIntBound(rand, 8) + 1;
+                    block = BLOCK_LEAVES;//nextIntBound(rand, 8) + 1;
                 else
                     block = BLOCK_AIR;
 
@@ -546,6 +511,8 @@ static void generateWorld()
 
 static void on_realize()
 {
+    glEnable(GL_TEXTURE_3D);
+
     // compile shader
     GLuint f = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(f, 1, &shader_frag, NULL);
@@ -623,15 +590,16 @@ static void on_realize()
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glTexStorage3D(GL_TEXTURE_3D,               // target
+    /*glTexStorage3D(GL_TEXTURE_3D,               // target
         1,                                      // levels
         GL_R8,                                  // internal format
-        WORLD_SIZE, WORLD_HEIGHT, WORLD_SIZE);  // size
+        WORLD_SIZE, WORLD_HEIGHT, WORLD_SIZE);  // size*/
 
-    glTexSubImage3D(GL_TEXTURE_3D,              // target
+    glTexImage3D(GL_TEXTURE_3D,                 // target
         0,                                      // level
-        0, 0, 0,                                // offsets
+        GL_RED,                                 // internal format
         WORLD_SIZE, WORLD_HEIGHT, WORLD_SIZE,   // size
+        0,                                      // border
         GL_RED,                                 // format
         GL_UNSIGNED_BYTE,                       // type
         world);                                 // pixels

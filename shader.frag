@@ -69,8 +69,6 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, in vec3 fogColo
     dist += max(ijkStep, vec3(0));
     dist *= vInverted;
 
-    //return vec3(getBlock(ijk + ivec3(0, 2, 0)) / 8.0f);
-
     int axis = 0; // X
 
     rayTravelDist = 0;
@@ -92,7 +90,7 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, in vec3 fogColo
             int texFetchX = int(mod((hitPos.x + hitPos.z) * TR, TR));
             int texFetchY = int(mod(hitPos.y * TR, TR) + TR);
 
-            if (axis == 1) // Y. we hit the top/bottom of block
+            if (axis == 3) // Y. we hit the top/bottom of block
             {
                 texFetchX = int(mod(hitPos.x * TR, TR));
                 texFetchY = int(mod(hitPos.z * TR, TR));
@@ -101,9 +99,11 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, in vec3 fogColo
                     texFetchY += TR * 2;
             }
 
+            //return vec3(float(blockHit) /8.f);
+
             vec3 textureColor = vec3(texture(T,
-                                            vec2((texFetchX + (blockHit * TR) + 0.5) / float(TR * 16.0),
-                                            (texFetchY + 0.5) / float(TR * 3.0))));
+                                            vec2(float(texFetchX + (blockHit * TR) + 0.5) / float(TR * 16.0),
+                                                 float(texFetchY + 0.5)                   / float(TR * 3.0))));
 
             return textureColor;
         
@@ -117,12 +117,8 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, in vec3 fogColo
                 float lightIntensity = 1 + (-sign(velocity[axis]) * l[axis]) / 2.0f;
 
                 // storing in vInverted to work around Shader_Minifier bug
-#ifdef CLASSIC
                 float fogIntensity = ((rayTravelDist / RD)) * (0xFF - (axis + 2) % 3 * 50) / 0xFF;
                 vInverted = mix(textureColor, fogColor, fogIntensity);
-#else
-                vInverted = textureColor * mix(a, s, lightIntensity);
-#endif
                 return vInverted;
             }
         }
@@ -177,11 +173,7 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, in vec3 fogColo
     hit = false;
 
     // storing in vInverted to work around Shader_Minifier bug
-#ifdef CLASSIC
     vInverted = vec3(0);
-#else
-    vInverted = fogColor; // sky
-#endif
 
     return vInverted;
 }
@@ -203,36 +195,7 @@ vec3 getPixel(in vec2 pixel_coords)
     vec3 hitPos;
     bool hit;
     float hitDist;
-    vec3 color = rayMarch(c.P, rayDir, RD, fogColor, hit, hitPos, hitDist);
-
-#ifndef CLASSIC
-    if(hit)
-    {
-        float shadowMult = (1 - l.y) * 0.3;
-
-        if(l.y < 0) { // day
-            float ignoreHitDist = 0;
-            vec3 ignoreColor = rayMarch(hitPos, l, RD / 2, fogColor, hit, hitPos, ignoreHitDist);
-
-
-            if(hit) // we can't see the sun
-                shadowMult *= 1 + l.y * 0.3;
-            
-        } else {
-            shadowMult = (1 - l.y) * 0.3; // night
-        }
-
-        color = color * shadowMult; // apply shadow
-
-        if(hitDist > RD * 0.95) {
-            float fogIntensity = ((hitDist - RD * 0.95) / (RD * 0.05));
-
-            color = mix(color, fogColor, fogIntensity);
-        }
-    }
-#endif
-
-    return color;
+    return rayMarch(c.P, rayDir, RD, fogColor, hit, hitPos, hitDist);
 }
 
 void main()

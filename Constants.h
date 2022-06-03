@@ -1,6 +1,6 @@
 //#include "Vector.h"
 
-//#define CLASSIC
+#define CLASSIC
 
 // PERFORMANCE OPTIONS
 
