@@ -47,7 +47,7 @@ bool inWorld(ivec3 pos)
 
 // Voxel ray marching from http://www.cse.chalmers.se/edu/year/2010/course/TDA361/grid.pdf
 // Optimized by keeping block lookups within the current chunk, which minimizes bitshifts, masks and multiplication operations
-vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, in vec3 fogColor, out bool hit, out vec3 hitPos, out float rayTravelDist)
+vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, out bool hit, out vec3 hitPos, out float rayTravelDist)
 {
     // Determine the chunk-relative position of the ray using a bit-mask
     ivec3 ijk = ivec3(start);
@@ -79,6 +79,7 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, in vec3 fogColo
         {
             hitPos = start + velocity * rayTravelDist;
             
+            return vec3(0.5);
             
             // side of block
             int texFetchX = int(mod((hitPos.x + hitPos.z) * TR, TR));
@@ -112,7 +113,7 @@ vec3 rayMarch(in vec3 start, in vec3 velocity, in float maximum, in vec3 fogColo
 
                 // storing in vInverted to work around Shader_Minifier bug
                 float fogIntensity = ((rayTravelDist / RD)) * (0xFF - (axis + 2) % 3 * 50) / 0xFF;
-                vInverted = mix(textureColor, fogColor, fogIntensity);
+                vInverted = mix(textureColor, vec3(0), fogIntensity);
                 return vInverted;
             }
         }
@@ -183,13 +184,11 @@ vec3 getPixel(in vec2 pixel_coords)
                                  frustumRay.y * c.cP - c.sP,
                                  temp * c.cY - frustumRay.x * c.sY));
 
-    vec3 fogColor = mix(k, s, 0.5 * pow(clamp(dot(rayDir, l), 0, 1) + 0.2, 5));
-
     // raymarch outputs
     vec3 hitPos;
     bool hit;
     float hitDist;
-    return rayMarch(c.P, rayDir, RD, fogColor, hit, hitPos, hitDist);
+    return rayMarch(c.P, rayDir, RD, hit, hitPos, hitDist);
 }
 
 void main()

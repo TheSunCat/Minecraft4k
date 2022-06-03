@@ -1,8 +1,10 @@
 DEBUG=false
 
-CFLAGS := -fno-plt -Os -std=gnu11 -nostartfiles -Wall -Wextra
+CFLAGS := -fno-plt -Os -std=gnu11 -nostartfiles -Wall -Wextra 
 CFLAGS += -fno-stack-protector -fno-stack-check -fno-unwind-tables -fno-asynchronous-unwind-tables -fomit-frame-pointer
 CFLAGS += -no-pie -fno-pic -fno-PIE -fno-PIC -march=core2 -ffunction-sections -fdata-sections
+CFLAGS += -fsingle-precision-constant -ffast-math 
+CFLAGS += -Wl,--gc-sections
 
 ifeq ($(DEBUG),false)
 	CFLAGS += -nostdlib
@@ -24,7 +26,7 @@ shader.h : shader.frag Makefile
 	mono ./shader_minifier.exe --preserve-externals shader.frag -o shader.h
 
 Minecraft4k.elf : Minecraft4k.c shader.h Makefile
-	gcc -o $@ $<  -lSDL2 -lGL $(CFLAGS)
+	gcc -o $@ $<  -lSDL2 -lGL $(CFLAGS) 
 
 Minecraft4k : Minecraft4k_opt.elf.packed
 	mv $< $@
@@ -32,6 +34,7 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 #all the rest of these rules just takes a compiled elf file and generates a packed version of it with vondehi
 %_opt.elf : %.elf Makefile noelfver
 	cp $< $@
+	objcopy --remove-section .note.gnu.property --remove-section .gnu.version --remove-section .fini --remove-section .init_array --remove-section .got $@
 	strip $@
 	strip -R .note -R .comment -R .eh_frame -R .eh_frame_hdr -R .note.gnu.build-id -R .got -R .got.plt -R .gnu.version -R .shstrtab -R .gnu.version_r -R .gnu.hash $@
 	./Section-Header-Stripper/section-stripper.py $@
