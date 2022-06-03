@@ -81,11 +81,19 @@ static Random makeRandom(uint64_t seed)
 // Perlin noise
 #define EXTRA_PRECISION true
 
+static int my_floor(float x)
+{
+    if(x >= 0)
+        return (int) x;
+    else
+        return (int) x + 1;
+}
+
 static float my_cos(float x)
 {
     float tp = 1./(2.*M_PI);
     x *= tp;
-    x -= .25 + floor(x + .25);
+    x -= .25 + my_floor(x + .25);
     x *= 16. * (fabs(x) - .5);
 #if EXTRA_PRECISION
     x += .225 * x * (fabs(x) - 1.);

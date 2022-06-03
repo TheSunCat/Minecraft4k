@@ -20,12 +20,6 @@ struct C // Camera
 };
 uniform C c; // camera
 
-// lighting
-uniform vec3 l; // lightDirection
-uniform vec3 k; // skyColor
-uniform vec3 a; // ambColor
-uniform vec3 s; // sunColor
-
 // world (texture 0)
 uniform sampler3D W;
 
