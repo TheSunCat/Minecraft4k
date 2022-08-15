@@ -270,27 +270,19 @@ static void raycastWorld()
 
     int axis = 0; // X
     
-    int loopCount = 0;
-
-    printf("Raycasting from (%f, %f, %f) with dist (%f, %f, %f): ", playerPosX, playerPosY, playerPosZ, dist.x, dist.y, dist.z);
-
     float rayTravelDist = 0;
-    while(rayTravelDist < PLAYER_REACH && loopCount < 100)
+    while(rayTravelDist < PLAYER_REACH)
     {
-        loopCount++;
-
         // exit check
         if(!isWithinWorld(ijk.x, ijk.y, ijk.z))
             break;
 
         int blockHit = getBlock(ijk.x, ijk.y, ijk.z);
 
-        printf("block %i at (%f, %f, %f)... ", blockHit, ijk.x, ijk.y, ijk.z);
-
         if(blockHit != 0) // BLOCK_AIR
         {
             // TODO set placeBlock as well
-            
+           
             hoverBlockX = ijk.x; hoverBlockY = ijk.y; hoverBlockZ = ijk.z;
             return;
         }
@@ -302,8 +294,6 @@ static void raycastWorld()
             {
                 // Advance to the closest voxel boundary in the Y direction
                 
-                printf("Advancing in Y ");
-
                 // Increment the chunk-relative position and the block access position
                 ijk.y += ijkStep.y;
 
@@ -319,8 +309,6 @@ static void raycastWorld()
             }
             else
             {
-                printf("Advancing in Z ");
-
                 ijk.z += ijkStep.z;
 
                 rayTravelDist = dist.z;
@@ -330,8 +318,6 @@ static void raycastWorld()
         }
         else if (dist.x < dist.z)
         {
-            printf("Advancing in X ");
-
             ijk.x += ijkStep.x;
 
             rayTravelDist = dist.x;
@@ -340,8 +326,6 @@ static void raycastWorld()
         }
         else
         {
-            printf("Advancing in Z ");
-
             ijk.z += ijkStep.z;
 
             rayTravelDist = dist.z;
@@ -380,8 +364,6 @@ static void on_render()
 
     // update position for destroying blocks
     raycastWorld();
-
-    printf("hoverBlock: (%i, %i, %i)\n", hoverBlockX, hoverBlockY, hoverBlockZ);
 
     updateMouse();
     updateController();
