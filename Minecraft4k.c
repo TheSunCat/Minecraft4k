@@ -211,26 +211,21 @@ int my_sign(float x)
 static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPitch, float frustumDivX, float frustumDivY)
 {
     // rotate frustum space to world space
-    float rayDirX = cosPitch * sinYaw;
-    float rayDirY = -sinPitch;
-    float rayDirZ = cosPitch * cosYaw;
-
-    // normalize
-    // TODO negative maybe because this is haunted and flips when debug mode is off
-    float rsqrt = 1.0f/sqrt(rayDirX * rayDirX + rayDirY * rayDirY + rayDirZ * rayDirZ);
-    rayDirX *= rsqrt; rayDirY *= rsqrt; rayDirZ *= rsqrt;
+    const float rayDirX = cosPitch * sinYaw;
+    const float rayDirY = -sinPitch;
+    const float rayDirZ = cosPitch * cosYaw;
 
     float i = (int)playerPosX;
     float j = (int)playerPosY;
     float k = (int)playerPosZ;
 
-    float iStep = my_sign(rayDirX);
-    float jStep = my_sign(rayDirY);
-    float kStep = my_sign(rayDirZ);
+    const float iStep = my_sign(rayDirX);
+    const float jStep = my_sign(rayDirY);
+    const float kStep = my_sign(rayDirZ);
 
-    float vInvertedX = fabs(1/rayDirX);
-    float vInvertedY = fabs(1/rayDirY);
-    float vInvertedZ = fabs(1/rayDirZ);
+    const float vInvertedX = fabs(1/rayDirX);
+    const float vInvertedY = fabs(1/rayDirY);
+    const float vInvertedZ = fabs(1/rayDirZ);
 
     float distX = -my_fract(playerPosX) * iStep;
     float distY = -my_fract(playerPosY) * jStep;
