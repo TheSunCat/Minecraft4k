@@ -1,7 +1,7 @@
 #version 130
 
 // WORLD_DIMENSIONS
-#define WD vec3(512, 64, 512)
+#define WD vec3(64, 64, 64)
 
 // TEXTURE_RES
 #define TR 16
@@ -38,7 +38,7 @@ out vec4 F;
 // get the block at the specified position in the world
 int getBlock(ivec3 coords)
 {
-    return int(length(texture(W, coords / WD) * 8));
+    return int(length(texture(W, coords / WD).xyz) * 36);
 }
 
 bool inWorld(ivec3 pos)
@@ -51,6 +51,8 @@ bool inWorld(ivec3 pos)
 
 vec3 getPixel(in vec2 pixel_coords)
 {
+    //return texture(W, vec3(pixel_coords.xy / S, 0)).rgb * 36;
+
     vec2 frustumRay = (pixel_coords - (0.5 * S)) / (c.f);
 
     // rotate frustum space to world space
@@ -59,8 +61,6 @@ vec3 getPixel(in vec2 pixel_coords)
     vec3 rayDir = normalize(vec3(frustumRay.x * c.cY + temp * c.sY,
                                  frustumRay.y * c.cP - c.sP,
                                  temp * c.cY - frustumRay.x * c.sY));
-
-    return vec3(ivec3(sign(rayDir)));
 
     // raymarch outputs
 
@@ -97,6 +97,8 @@ vec3 getPixel(in vec2 pixel_coords)
 
         if (blockHit != 0) // BLOCK_AIR
         {
+            //return vec3(0, 1, 0);
+
             vec3 hitPos = c.P + rayDir * rayTravelDist;
             
             // side of block
@@ -118,15 +120,12 @@ vec3 getPixel(in vec2 pixel_coords)
                                             vec2(float(texFetchX + (blockHit * TR) + 0.5) / float(TR * 16.0),
                                                  float(texFetchY + 0.5)                   / float(TR * 3.0))));
 
-            return textureColor;
-        
-
             if (dot(textureColor, textureColor) != 0) { // pixel is not transparent
             
-                hitPos = start + rayDir * (rayTravelDist - 0.01f);
+                hitPos = c.P + rayDir * (rayTravelDist - 0.01f);
 
 
-                float lightIntensity = 1 + (-sign(rayDir[axis]) * l[axis]) / 2.0f;
+                float lightIntensity = 1;// TODO + (-sign(rayDir[axis]) * l[axis]) / 2.0f;
 
                 // storing in vInverted to work around Shader_Minifier bug
                 float fogIntensity = ((rayTravelDist / RD)) * (0xFF - (axis + 2) % 3 * 50) / 0xFF;
@@ -181,6 +180,8 @@ vec3 getPixel(in vec2 pixel_coords)
             axis = 2; // Z
         }
     }
+
+    return vec3(1, 0, 0);
 
     // storing in vInverted to work around Shader_Minifier bug
     vInverted = vec3(0);
