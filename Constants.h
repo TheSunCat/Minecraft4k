@@ -1,5 +1,3 @@
-//#define DEBUG
-
 #define SCR_WIDTH_DEFAULT 214
 #define SCR_HEIGHT_DEFAULT 120
 

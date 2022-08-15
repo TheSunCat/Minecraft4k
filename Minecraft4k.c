@@ -187,29 +187,6 @@ static void updateMouse()
 // BAD STARTS HERE
 // ---------------
 
-
-typedef struct vec3 {
-    float x, y, z;
-} vec3;
-
-// fast inverse square root from Quake III for the lolz
-float Q_rsqrt(float number)
-{
-	long i;
-	float x2, y;
-	const float threehalfs = 1.5F;
-
-	x2 = number * 0.5F;
-	y  = number;
-	i  = * ( long * ) &y;                       // evil floating point bit level hacking
-	i  = 0x5f3759df - ( i >> 1 );               // what the fuck? 
-	y  = * ( float * ) &i;
-	y  = y * ( threehalfs - ( x2 * y * y ) );   // 1st iteration
-//	y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
-
-	return y;
-}
-
 float my_fract(float x)
 {
     if(x < 0)
@@ -231,107 +208,91 @@ int my_sign(float x)
     return 1;
 }
 
-static void raycastWorld()
+static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPitch, float frustumDivX, float frustumDivY)
 {
-    // TODO deduplicate this code
-    float frustumDivX = (SCR_WIDTH * FOV) / 214.f;
-    float frustumDivY = (SCR_HEIGHT * FOV) / 120.f;
-
-    float sinYaw = my_sin(cameraYaw);
-    float cosYaw = my_cos(cameraYaw);
-    float sinPitch = my_sin(cameraPitch);
-    float cosPitch = my_cos(cameraPitch);
-
-
-    float frustumRayX = (SCR_WIDTH / 2 - (0.5f * SCR_WIDTH )) / frustumDivX;
-    float frustumRayY = (SCR_HEIGHT/ 2 - (0.5f * SCR_HEIGHT)) / frustumDivY;
-
     // rotate frustum space to world space
-    float temp = cosPitch + frustumRayY * sinPitch;
-
-    vec3 rayDir = {
-        frustumRayX * cosYaw + temp * sinYaw,
-        frustumRayY * cosPitch - sinPitch,
-        temp * cosYaw - frustumRayX * sinYaw
-    };
+    float rayDirX = cosPitch * sinYaw;
+    float rayDirY = -sinPitch;
+    float rayDirZ = cosPitch * cosYaw;
 
     // normalize
-    // TODO negative because this is haunted and flips when debug mode is off
-    float rsqrt = -Q_rsqrt(rayDir.x * rayDir.x + rayDir.y * rayDir.y + rayDir.z * rayDir.z);
-    rayDir.x *= rsqrt; rayDir.y *= rsqrt; rayDir.z *= rsqrt;
+    // TODO negative maybe because this is haunted and flips when debug mode is off
+    float rsqrt = 1.0f/sqrt(rayDirX * rayDirX + rayDirY * rayDirY + rayDirZ * rayDirZ);
+    rayDirX *= rsqrt; rayDirY *= rsqrt; rayDirZ *= rsqrt;
 
-    vec3 ijk = { (int)playerPosX, (int)playerPosY, (int)playerPosZ };
-    vec3 ijkStep = { my_sign(rayDir.x), my_sign(rayDir.y), my_sign(rayDir.z) };
+    float i = (int)playerPosX;
+    float j = (int)playerPosY;
+    float k = (int)playerPosZ;
 
-    vec3 vInverted = { fabs(1/rayDir.x), fabs(1/rayDir.y), fabs(1/rayDir.z) };
+    float iStep = my_sign(rayDirX);
+    float jStep = my_sign(rayDirY);
+    float kStep = my_sign(rayDirZ);
 
-    vec3 dist = { -my_fract(playerPosX) * ijkStep.x, -my_fract(playerPosY) * ijkStep.y, -my_fract(playerPosZ) * ijkStep.z };
-    dist.x += my_max(ijkStep.x, 0); dist.y += my_max(ijkStep.y, 0); dist.z += my_max(ijkStep.z, 0);
-    dist.x *= vInverted.x; dist.y *= vInverted.y; dist.z *= vInverted.z;
+    float vInvertedX = fabs(1/rayDirX);
+    float vInvertedY = fabs(1/rayDirY);
+    float vInvertedZ = fabs(1/rayDirZ);
 
-    int axis = 0; // X
-    
+    float distX = -my_fract(playerPosX) * iStep;
+    float distY = -my_fract(playerPosY) * jStep;
+    float distZ = -my_fract(playerPosZ) * kStep;
+
+    distX += my_max(iStep, 0); distY += my_max(jStep, 0); distZ += my_max(kStep, 0);
+    distX *= vInvertedX; distY *= vInvertedY; distZ *= vInvertedZ;
+
     float rayTravelDist = 0;
     while(rayTravelDist < PLAYER_REACH)
     {
         // exit check
-        if(!isWithinWorld(ijk.x, ijk.y, ijk.z))
+        if(!isWithinWorld(i, j, k))
             break;
 
-        int blockHit = getBlock(ijk.x, ijk.y, ijk.z);
+        int blockHit = getBlock(i, j, k);
 
         if(blockHit != 0) // BLOCK_AIR
         {
             // TODO set placeBlock as well
            
-            hoverBlockX = ijk.x; hoverBlockY = ijk.y; hoverBlockZ = ijk.z;
+            hoverBlockX = i; hoverBlockY = j; hoverBlockZ = k;
             return;
         }
 
         // Determine the closest voxel boundary
-        if (dist.y < dist.x)
+        if (distY < distX)
         {
-            if (dist.y < dist.z)
+            if (distY < distZ)
             {
                 // Advance to the closest voxel boundary in the Y direction
                 
                 // Increment the chunk-relative position and the block access position
-                ijk.y += ijkStep.y;
+                j += jStep;
 
                 // Update our progress in the ray 
-                rayTravelDist = dist.y;
+                rayTravelDist = distY;
 
                 // Set the new distance to the next voxel Y boundary
-                dist.y += vInverted.y;
-
-                // For collision purposes we also store the last axis that the ray collided with
-                // This allows us to reflect particle rayDir on the correct axis
-                axis = 1; // Y
+                distY += vInvertedY;
             }
             else
             {
-                ijk.z += ijkStep.z;
+                k += kStep;
 
-                rayTravelDist = dist.z;
-                dist.z += vInverted.z;
-                axis = 2; // Z
+                rayTravelDist = distZ;
+                distZ += vInvertedZ;
             }
         }
-        else if (dist.x < dist.z)
+        else if (distX < distZ)
         {
-            ijk.x += ijkStep.x;
+            i += iStep;
 
-            rayTravelDist = dist.x;
-            dist.x += vInverted.x;
-            axis = 0; // X
+            rayTravelDist = distX;
+            distX += vInvertedX;
         }
         else
         {
-            ijk.z += ijkStep.z;
+            k += kStep;
 
-            rayTravelDist = dist.z;
-            dist.z += vInverted.z;
-            axis = 2; // Z
+            rayTravelDist = distZ;
+            distZ += vInvertedZ;
         }
     }
 
@@ -363,8 +324,16 @@ static void on_render()
 
     lastFrameTime = frameTime;
 
+    float sinYaw = my_sin(cameraYaw);
+    float cosYaw = my_cos(cameraYaw);
+    float sinPitch = my_sin(cameraPitch);
+    float cosPitch = my_cos(cameraPitch);
+ 
+    float frustumDivX = (SCR_WIDTH * FOV) / 214.f;
+    float frustumDivY = (SCR_HEIGHT * FOV) / 120.f;
+
     // update position for destroying blocks
-    raycastWorld();
+    raycastWorld(sinYaw, cosYaw, sinPitch, cosPitch, frustumDivX, frustumDivY);
 
     updateMouse();
     updateController();
@@ -372,12 +341,7 @@ static void on_render()
     //if (needsResUpdate) {
     //    updateScreenResolution();
     //}
-
-    float sinYaw = my_sin(cameraYaw);
-    float cosYaw = my_cos(cameraYaw);
-    float sinPitch = my_sin(cameraPitch);
-    float cosPitch = my_cos(cameraPitch);
-    
+   
     while (currentTime() - lastUpdateTime > 10)
     {
         const float inputX = (-kb[SDL_SCANCODE_A] + kb[SDL_SCANCODE_D]) * 0.02F;
@@ -451,9 +415,6 @@ static void on_render()
     }
 
     // Compute the raytracing!
-    float frustumDivX = (SCR_WIDTH * FOV) / 214.f;
-    float frustumDivY = (SCR_HEIGHT * FOV) / 120.f;
-
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_3D, worldTex);
     glUniform1i(glGetUniformLocation(shader, "W"), 0);
@@ -719,19 +680,22 @@ void _start() {
     asm volatile("sub $8, %rsp\n");
 
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+    SDL_SetHint("SDL_HINT_MOUSE_RELATIVE_MODE_WARP", "1");
     window = SDL_CreateWindow(
         "",
         0,
         0,
         SCR_WIDTH,
         SCR_HEIGHT,
-        SDL_WINDOW_OPENGL ///| SDL_WINDOW_FULLSCREEN
+        SDL_WINDOW_OPENGL | SDL_WINDOW_INPUT_GRABBED//| SDL_WINDOW_FULLSCREEN
     );
 
     SDL_GL_CreateContext(window);
     SDL_ShowCursor(SDL_TRUE);
     SDL_SetRelativeMouseMode(SDL_TRUE);
     SDL_CaptureMouse(SDL_TRUE); 
+    SDL_SetWindowGrab(window, SDL_TRUE);
+    SDL_SetWindowMouseGrab(window, SDL_TRUE);
 
     on_realize();
 

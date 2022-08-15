@@ -1,4 +1,4 @@
-DEBUG=true
+DEBUG=false
 
 CFLAGS := -s -fno-plt -Os -std=gnu11 -nostartfiles -Wall -Wextra 
 CFLAGS += -fno-stack-protector -fno-stack-check -fno-unwind-tables -fno-asynchronous-unwind-tables -fomit-frame-pointer
@@ -7,7 +7,7 @@ CFLAGS += -fsingle-precision-constant -ffast-math
 CFLAGS += -Wl,--gc-sections
 
 ifeq ($(DEBUG),false)
-	#CFLAGS += -nostdlib
+	CFLAGS += -nostdlib
 else
 	CFLAGS += -DDEBUG=true -g
 	LDFLAGS += -g
