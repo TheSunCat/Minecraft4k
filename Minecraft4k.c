@@ -145,7 +145,7 @@ float playerVelocityX = 0, playerVelocityY = 0, playerVelocityZ = 0;
 // spawn player at world center
 float playerPosX = WORLD_SIZE / 2.0f + 0.5f, playerPosY = 1, playerPosZ = WORLD_SIZE / 2.0f + 0.5f;
 
-void updateMouse()
+static void updateMouse()
 {
     int x, y;
     SDL_GetMouseState(&x, &y);
@@ -164,6 +164,13 @@ void updateMouse()
     cameraPitch = clamp(cameraPitch, -M_PI / 2.0f, M_PI / 2.0f);
 }
 
+const uint8_t* kb = NULL;
+
+static void updateController()
+{
+    kb = SDL_GetKeyboardState(NULL);
+}
+
 uint64_t lastFrameTime = 0;
 uint64_t lastUpdateTime;
 
@@ -179,7 +186,7 @@ static void on_render()
     lastFrameTime = frameTime;
 
     updateMouse();
-    //updateController();
+    updateController();
 
     //if (needsResUpdate) {
     //    updateScreenResolution();
@@ -192,8 +199,8 @@ static void on_render()
     
     while (currentTime() - lastUpdateTime > 10)
     {
-        const float inputX = /*controller.right*/0 * 0.02F;
-        const float inputZ = /*controller.forward*/0 * 0.02F;
+        const float inputX = (-kb[SDL_SCANCODE_A] + kb[SDL_SCANCODE_D]) * 0.02F;
+        const float inputZ = (-kb[SDL_SCANCODE_S] + kb[SDL_SCANCODE_W]) * 0.02F;
 
         playerVelocityX *= 0.5F;
         playerVelocityY *= 0.99F;
@@ -227,7 +234,7 @@ static void on_render()
                     if (axis == 1) // AXIS_Y
                     {
                         // if we're falling, colliding, and we press space
-                        if (/*controller.jump*/0 && playerVelocityY > 0.0f) {
+                        if ((kb[SDL_SCANCODE_SPACE]) && playerVelocityY > 0.0f) {
 
                             playerVelocityY = -0.1F; // jump
                         }
@@ -328,20 +335,20 @@ static void generateWorld()
     glGenTextures(1, &worldTex);
     glBindTexture(GL_TEXTURE_3D, worldTex);
 
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);//GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);//GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);//GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glTexImage3D(GL_TEXTURE_3D,                 // target
         0,                                      // level
-        GL_RGBA8,                                 // internal format
+        GL_RED,                                 // internal format
         WORLD_SIZE, WORLD_HEIGHT, WORLD_SIZE,   // size
         0,                                      // border
         GL_RED,                                 // format
         GL_UNSIGNED_BYTE,                       // type
-        &world[0]);                                 // pixels
+        world);                                 // pixels
 }
 
 static void generateTextures()

@@ -61,7 +61,7 @@
 #define SCR_WIDTH_DEFAULT 214
 #define SCR_HEIGHT_DEFAULT 120
 
-#define SCR_DETAIL 2
+#define SCR_DETAIL 0
 
 #define SCR_WIDTH (SCR_WIDTH_DEFAULT * (float) (1 << SCR_DETAIL))
 #define SCR_HEIGHT (SCR_HEIGHT_DEFAULT * (float) (1 << SCR_DETAIL))
