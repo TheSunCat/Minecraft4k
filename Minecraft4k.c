@@ -95,6 +95,13 @@ float clamp(float x, float min, float max)
         return max;
     return x;
 }
+/*
+float abs(float x)
+{
+    if(x < 0)
+        return -x;
+    return x;
+}*/
 
 uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
 
@@ -127,6 +134,9 @@ int hoverBlockX = -1, hoverBlockY = -1, hoverBlockZ = -1;
 
 static void placeBlock(uint8_t block)
 {
+    if(hoverBlockX == -1)
+        return;
+
     setBlock(hoverBlockX, hoverBlockY, hoverBlockZ, block);
 }
 
@@ -158,7 +168,7 @@ static void updateMouse()
     }
     cameraPitch = clamp(cameraPitch, -M_PI / 2.0f, M_PI / 2.0f);
 
-    hoverBlockX = playerPosX; hoverBlockY = playerPosY + 2; hoverBlockZ = playerPosZ;
+    //hoverBlockX = playerPosX; hoverBlockY = playerPosY + 2; hoverBlockZ = playerPosZ;
 
     if((mouseState & SDL_BUTTON_LMASK) && !(lastMouseState & SDL_BUTTON_LMASK))
     {
@@ -172,6 +182,180 @@ static void updateMouse()
 
     lastMouseState = mouseState;
 }
+
+// ---------------
+// BAD STARTS HERE
+// ---------------
+
+
+typedef struct vec3 {
+    float x, y, z;
+} vec3;
+
+// fast inverse square root from Quake III for the lolz
+float Q_rsqrt(float number)
+{
+	long i;
+	float x2, y;
+	const float threehalfs = 1.5F;
+
+	x2 = number * 0.5F;
+	y  = number;
+	i  = * ( long * ) &y;                       // evil floating point bit level hacking
+	i  = 0x5f3759df - ( i >> 1 );               // what the fuck? 
+	y  = * ( float * ) &i;
+	y  = y * ( threehalfs - ( x2 * y * y ) );   // 1st iteration
+//	y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
+
+	return y;
+}
+
+float fract(float x)
+{
+    if(x < 0)
+        return x + (float)((int) x);
+    return x - (float)((int) x);
+}
+
+float max(float a, float b)
+{
+    if(a > b)
+        return a;
+    return b;
+}
+
+int sign(float x)
+{
+    if(x < 0)
+        return -1;
+    return 1;
+}
+
+static void raycastWorld()
+{
+    // TODO deduplicate this code
+    float frustumDivX = (SCR_WIDTH * FOV) / 214.f;
+    float frustumDivY = (SCR_HEIGHT * FOV) / 120.f;
+
+    float sinYaw = my_sin(cameraYaw);
+    float cosYaw = my_cos(cameraYaw);
+    float sinPitch = my_sin(cameraPitch);
+    float cosPitch = my_cos(cameraPitch);
+
+
+    float frustumRayX = (SCR_WIDTH / 2 - (0.5f * SCR_WIDTH )) / frustumDivX;
+    float frustumRayY = (SCR_HEIGHT/ 2 - (0.5f * SCR_HEIGHT)) / frustumDivY;
+
+    // rotate frustum space to world space
+    float temp = cosPitch + frustumRayY * sinPitch;
+
+    vec3 rayDir = {
+        frustumRayX * cosYaw + temp * sinYaw,
+        frustumRayY * cosPitch - sinPitch,
+        temp * cosYaw - frustumRayX * sinYaw
+    };
+
+    // normalize
+    float rsqrt = Q_rsqrt(rayDir.x * rayDir.x + rayDir.y * rayDir.y + rayDir.z * rayDir.z);
+    rayDir.x *= rsqrt; rayDir.y *= rsqrt; rayDir.z *= rsqrt;
+
+    vec3 ijk = { (int)playerPosX, (int)playerPosY, (int)playerPosZ };
+    vec3 ijkStep = { sign(rayDir.x), sign(rayDir.y), sign(rayDir.z) };
+
+    vec3 vInverted = { fabs(1/rayDir.x), fabs(1/rayDir.y), fabs(1/rayDir.z) };
+
+    vec3 dist = { -fract(playerPosX) * ijkStep.x, -fract(playerPosY) * ijkStep.y, -fract(playerPosZ) * ijkStep.z };
+    dist.x += max(ijkStep.x, 0); dist.y += max(ijkStep.y, 0); dist.z += max(ijkStep.z, 0);
+    dist.x *= vInverted.x; dist.y *= vInverted.y; dist.z *= vInverted.z;
+
+    int axis = 0; // X
+    
+    int loopCount = 0;
+
+    printf("Raycasting from (%f, %f, %f) with dist (%f, %f, %f): ", playerPosX, playerPosY, playerPosZ, dist.x, dist.y, dist.z);
+
+    float rayTravelDist = 0;
+    while(rayTravelDist < PLAYER_REACH && loopCount < 100)
+    {
+        loopCount++;
+
+        // exit check
+        if(!isWithinWorld(ijk.x, ijk.y, ijk.z))
+            break;
+
+        int blockHit = getBlock(ijk.x, ijk.y, ijk.z);
+
+        printf("block %i at (%f, %f, %f)... ", blockHit, ijk.x, ijk.y, ijk.z);
+
+        if(blockHit != 0) // BLOCK_AIR
+        {
+            // TODO set placeBlock as well
+            
+            hoverBlockX = ijk.x; hoverBlockY = ijk.y; hoverBlockZ = ijk.z;
+            return;
+        }
+
+        // Determine the closest voxel boundary
+        if (dist.y < dist.x)
+        {
+            if (dist.y < dist.z)
+            {
+                // Advance to the closest voxel boundary in the Y direction
+                
+                printf("Advancing in Y ");
+
+                // Increment the chunk-relative position and the block access position
+                ijk.y += ijkStep.y;
+
+                // Update our progress in the ray 
+                rayTravelDist = dist.y;
+
+                // Set the new distance to the next voxel Y boundary
+                dist.y += vInverted.y;
+
+                // For collision purposes we also store the last axis that the ray collided with
+                // This allows us to reflect particle rayDir on the correct axis
+                axis = 1; // Y
+            }
+            else
+            {
+                printf("Advancing in Z ");
+
+                ijk.z += ijkStep.z;
+
+                rayTravelDist = dist.z;
+                dist.z += vInverted.z;
+                axis = 2; // Z
+            }
+        }
+        else if (dist.x < dist.z)
+        {
+            printf("Advancing in X ");
+
+            ijk.x += ijkStep.x;
+
+            rayTravelDist = dist.x;
+            dist.x += vInverted.x;
+            axis = 0; // X
+        }
+        else
+        {
+            printf("Advancing in Z ");
+
+            ijk.z += ijkStep.z;
+
+            rayTravelDist = dist.z;
+            dist.z += vInverted.z;
+            axis = 2; // Z
+        }
+    }
+
+    hoverBlockX = -1; hoverBlockY = -1; hoverBlockZ = -1;
+}
+
+// -------------
+// BAD ENDS HERE
+// -------------
 
 const uint8_t* kb = NULL;
 
@@ -193,6 +377,11 @@ static void on_render()
     }
 
     lastFrameTime = frameTime;
+
+    // update position for destroying blocks
+    raycastWorld();
+
+    printf("hoverBlock: (%i, %i, %i)\n", hoverBlockX, hoverBlockY, hoverBlockZ);
 
     updateMouse();
     updateController();
@@ -277,8 +466,6 @@ static void on_render()
 
         lastUpdateTime += 10;
     }
-
-    // TODO raycast(SCR_RES / 2.0f, hoveredBlockPos, placeBlockPos);
 
     // Compute the raytracing!
     float frustumDivX = (SCR_WIDTH * FOV) / 214.f;
