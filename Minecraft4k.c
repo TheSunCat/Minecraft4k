@@ -141,7 +141,9 @@ float cameraPitch = 0;
 float cameraYaw = 0;
 
 float playerVelocityX = 0, playerVelocityY = 0, playerVelocityZ = 0;
-float playerPosX = 0, playerPosY = 0, playerPosZ = 0;
+
+// spawn player at world center
+float playerPosX = WORLD_SIZE / 2.0f + 0.5f, playerPosY = 1, playerPosZ = WORLD_SIZE / 2.0f + 0.5f;
 
 void updateMouse()
 {
@@ -174,7 +176,6 @@ static void on_render()
         lastUpdateTime = frameTime;
     }
 
-    const uint64_t deltaTime = frameTime - lastFrameTime;
     lastFrameTime = frameTime;
 
     updateMouse();
@@ -191,8 +192,8 @@ static void on_render()
     
     while (currentTime() - lastUpdateTime > 10)
     {
-        const float inputX = /*controller.right*/1 * 0.02F;
-        const float inputZ = /*controller.forward*/1 * 0.02F;
+        const float inputX = /*controller.right*/0 * 0.02F;
+        const float inputZ = /*controller.forward*/0 * 0.02F;
 
         playerVelocityX *= 0.5F;
         playerVelocityY *= 0.99F;
@@ -264,8 +265,8 @@ static void on_render()
     // TODO raycast(SCR_RES / 2.0f, hoveredBlockPos, placeBlockPos);
 
     // Compute the raytracing!
-    float frustumDivX = (SCR_WIDTH * FOV) / 120.f;
-    float frustumDivY = (SCR_HEIGHT * FOV) / 214.f;
+    float frustumDivX = (SCR_WIDTH * FOV) / 214.f;
+    float frustumDivY = (SCR_HEIGHT * FOV) / 120.f;
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_3D, worldTex);

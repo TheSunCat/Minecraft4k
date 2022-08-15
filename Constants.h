@@ -58,6 +58,11 @@
 #define vec3 YC_NIGHT = vec3(0.004f, 0.004f, 0.008f);
  */
 
-#define SCR_WIDTH 1920
-#define SCR_HEIGHT 1080
+#define SCR_WIDTH_DEFAULT 214
+#define SCR_HEIGHT_DEFAULT 120
+
+#define SCR_DETAIL 2
+
+#define SCR_WIDTH (SCR_WIDTH_DEFAULT * (float) (1 << SCR_DETAIL))
+#define SCR_HEIGHT (SCR_HEIGHT_DEFAULT * (float) (1 << SCR_DETAIL))
 // #define KEY_HANDLING

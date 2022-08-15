@@ -51,20 +51,17 @@ bool inWorld(ivec3 pos)
 
 vec3 getPixel(in vec2 pixel_coords)
 {
-    //return texture(W, vec3(pixel_coords.x, float(time) / 100.0f, pixel_coords.z) / WD).rgb * 16;
-    //return texture(T, pixel_coords.xy / S).rgb;
-
-
-    vec2 frustumRay = (pixel_coords - (0.5 * S)) / c.f; // TODO do I divide by SCREEN_SIZE?
+    vec2 frustumRay = (pixel_coords - (0.5 * S)) / (c.f);
 
     // rotate frustum space to world space
     float temp = c.cP + frustumRay.y * c.sP;
-    
+
     vec3 rayDir = normalize(vec3(frustumRay.x * c.cY + temp * c.sY,
                                  frustumRay.y * c.cP - c.sP,
                                  temp * c.cY - frustumRay.x * c.sY));
 
-    return rayDir * (time % 1000);
+    return vec3(ivec3(sign(rayDir)));
+
     // raymarch outputs
 
     // ~~stolen~~ took "inspiration" from https://github.com/Vercidium/voxel-ray-marching/blob/master/source/Map.cs
@@ -73,6 +70,7 @@ vec3 getPixel(in vec2 pixel_coords)
 
     // Determine the chunk-relative position of the ray using a bit-mask
     ivec3 ijk = ivec3(c.P);
+
 
     // The amount to increase i, j and k in each axis (either 1 or -1)
     ivec3 ijkStep = ivec3(sign(rayDir));
