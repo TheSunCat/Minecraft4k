@@ -126,11 +126,10 @@ float playerPosX = WORLD_SIZE / 2.0f + 0.5f, playerPosY = 1, playerPosZ = WORLD_
 static void updateMouse()
 {
     int x, y;
-    SDL_GetMouseState(&x, &y);
-    SDL_WarpMouseInWindow(window, SCR_WIDTH / 2, SCR_HEIGHT / 2);
+    SDL_GetRelativeMouseState(&x, &y);
 
-    cameraYaw += (x - (SCR_WIDTH / 2)) / 500.0f;
-    cameraPitch -= (y - (SCR_HEIGHT / 2)) / 500.0f;
+    cameraYaw += x / 500.0f;
+    cameraPitch -= y / 500.0f;
 
     if(fabs(cameraYaw) > M_PI)
     {
