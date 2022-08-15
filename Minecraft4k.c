@@ -43,18 +43,18 @@ uint32_t nextInt(Random* rand)
 uint32_t nextIntBound(Random* rand, int32_t bound)
 {
     uint32_t r = RANDOM_next(rand, 31);
+    const uint32_t m = bound - 1;
 
-    if ((bound & (-bound)) == bound)  // i.e., bound is a power of 2
-        return ((uint32_t)bound) * (r >> 31);
-        
-    int32_t bits = 0, val = 0;
+    // TODO why does this exist??
+    //if ((bound & m) == 0)  // i.e., bound is a power of 2
+    //    r = (uint32_t)(bound * (((uint64_t)r) >> 31));
+    //else {
+        for(uint32_t u = r;
+            u - (r = u % bound) + m < 0;
+            u = RANDOM_next(rand, 31));
+    //}
 
-    do {
-        bits = RANDOM_next(rand, 31);
-        val = bits % bound;
-    } while (bits - val + (bound-1) < 0);
-    
-    return val;
+    return r;
 }
 
 static Random makeRandom(uint64_t seed)
@@ -70,6 +70,22 @@ static int my_floor(float x)
         return (int) x + 1;
 }
 
+// TODO tune this
+#define TRIG_PRECISION 50
+static float my_sin(float x)
+{
+    double t = x;
+    double sine = t;
+    for (int a=1; a < TRIG_PRECISION; ++a)
+    {
+        double mult = -x*x/((2*a+1)*(2*a));
+        t *= mult;
+        sine += t;
+    }
+    return (float)sine;
+}
+
+/*
 #define EXTRA_PRECISION true
 static float my_cos(float x)
 {
@@ -81,11 +97,11 @@ static float my_cos(float x)
     x += .225 * x * (fabs(x) - 1.);
 #endif
     return x;
-}
+}*/
 
-static float my_sin(float x)
+static float my_cos(float x)
 {
-    return my_cos(x - M_PI / 2.0f);
+    return my_sin(x + M_PI / 2.0f);
 }
 
 float clamp(float x, float min, float max)
@@ -118,8 +134,7 @@ static int isWithinWorld(int x, int y, int z)
 SDL_Window* window;
 
 GLuint shader;
-GLuint worldTexture;
-
+GLuint worldTex;
 GLuint textureAtlasTex;
 
 float cameraPitch = 0;
@@ -253,7 +268,7 @@ static void on_render()
     float frustumDivY = (SCR_HEIGHT * FOV) / 214.f;
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_3D, worldTexture);
+    glBindTexture(GL_TEXTURE_3D, worldTex);
     glUniform1i(glGetUniformLocation(shader, "W"), 0);
 
     glActiveTexture(GL_TEXTURE1);
@@ -261,6 +276,13 @@ static void on_render()
     glUniform1i(glGetUniformLocation(shader, "T"), 1);
 
     glUniform2f(glGetUniformLocation(shader, "S"), SCR_WIDTH, SCR_HEIGHT);
+
+    // TODO remove
+    glUniform1i(glGetUniformLocation(shader, "time"), currentTime()); 
+
+#ifdef DEBUG
+    printf("cosYaw: %f\ncosPitch: %f\nsinYaw: %f\nsinPitch: %f\nfrustumDiv: (%f, %f)\nplayerPos: (%f, %f, %f)\n\n---------------------------\n\n", cosYaw, cosPitch, sinYaw, sinPitch, frustumDivX, frustumDivY, playerPosX, playerPosY, playerPosZ);
+#endif
 
     glUniform1f(glGetUniformLocation(shader, "c.cY"), cosYaw);
     glUniform1f(glGetUniformLocation(shader, "c.cP"), cosPitch);
@@ -271,6 +293,54 @@ static void on_render()
 
     // render!!
     glRecti(-1,-1,1,1);
+    glFlush();
+}
+
+static void generateWorld()
+{
+    float maxTerrainHeight = WORLD_HEIGHT / 2.0f;
+
+    long long seed = 18295169L;
+    Random rand = makeRandom(seed);
+
+    for (int x = WORLD_SIZE; x >= 0; x--) {
+        for (int y = 0; y < WORLD_HEIGHT; y++) {
+            for (int z = 0; z < WORLD_SIZE; z++) {
+                uint8_t block;
+
+                int randInt = nextIntBound(&rand, 8);
+
+                if (y > (maxTerrainHeight + randInt))
+                    block = nextIntBound(&rand, 8) + 1;
+                else
+                    block = BLOCK_AIR;
+
+                if (x == WORLD_SIZE) // TODO can't I just start at WORLD_SIZE - 1?
+                    continue;
+
+                setBlock(x, y, z, block);
+            }
+        }
+    }
+    
+    // Upload world to GPU
+    glGenTextures(1, &worldTex);
+    glBindTexture(GL_TEXTURE_3D, worldTex);
+
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);//GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);//GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);//GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glTexImage3D(GL_TEXTURE_3D,                 // target
+        0,                                      // level
+        GL_RGBA8,                                 // internal format
+        WORLD_SIZE, WORLD_HEIGHT, WORLD_SIZE,   // size
+        0,                                      // border
+        GL_RED,                                 // format
+        GL_UNSIGNED_BYTE,                       // type
+        &world[0]);                                 // pixels
 }
 
 static void generateTextures()
@@ -395,32 +465,6 @@ static void generateTextures()
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-static void generateWorld()
-{
-    float maxTerrainHeight = WORLD_HEIGHT / 2.0f;
-
-    long long seed = 18295169L;
-    Random rand = makeRandom(seed);
-
-    for (int x = WORLD_SIZE; x >= 0; x--) {
-        for (int y = 0; y < WORLD_HEIGHT; y++) {
-            for (int z = 0; z < WORLD_SIZE; z++) {
-                uint8_t block;
-
-                if (y > maxTerrainHeight + nextIntBound(&rand, 8))
-                    block = nextIntBound(&rand, 8) + 1;
-                else
-                    block = BLOCK_AIR;
-
-                if (x == WORLD_SIZE) // TODO can't I just start at WORLD_SIZE - 1?
-                    continue;
-
-                setBlock(x, y, z, block);
-            }
-        }
-    }
-}
-
 static void on_realize()
 {
     glEnable(GL_TEXTURE_3D);
@@ -492,30 +536,6 @@ static void on_realize()
     // Game init
     generateWorld();
     
-    // Upload world to GPU
-    glGenTextures(1, &worldTexture);
-    glBindTexture(GL_TEXTURE_3D, worldTexture);
-
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);//GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);//GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);//GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    /*glTexStorage3D(GL_TEXTURE_3D,               // target
-        1,                                      // levels
-        GL_R8,                                  // internal format
-        WORLD_SIZE, WORLD_HEIGHT, WORLD_SIZE);  // size*/
-
-    glTexImage3D(GL_TEXTURE_3D,                 // target
-        0,                                      // level
-        GL_RED,                                 // internal format
-        WORLD_SIZE, WORLD_HEIGHT, WORLD_SIZE,   // size
-        0,                                      // border
-        GL_RED,                                 // format
-        GL_UNSIGNED_BYTE,                       // type
-        world);                                 // pixels
-
     generateTextures();
 }
 

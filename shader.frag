@@ -29,6 +29,9 @@ uniform sampler2D T;
 // SCREEN_SIZE
 uniform vec2 S;
 
+// TODO remove
+uniform int time;
+
 // fragColor
 out vec4 F;
 
@@ -48,11 +51,11 @@ bool inWorld(ivec3 pos)
 
 vec3 getPixel(in vec2 pixel_coords)
 {
-    //return texture(W, vec3(pixel_coords.xy, 1) / WD).rgb * 16;
-    return texture(T, pixel_coords.xy / S).rgb;
+    //return texture(W, vec3(pixel_coords.x, float(time) / 100.0f, pixel_coords.z) / WD).rgb * 16;
+    //return texture(T, pixel_coords.xy / S).rgb;
 
 
-    vec2 frustumRay = (pixel_coords - (0.5 / S)) / c.f; // TODO do I mult by SCREEN_SIZE?
+    vec2 frustumRay = (pixel_coords - (0.5 * S)) / c.f; // TODO do I divide by SCREEN_SIZE?
 
     // rotate frustum space to world space
     float temp = c.cP + frustumRay.y * c.sP;
@@ -61,6 +64,7 @@ vec3 getPixel(in vec2 pixel_coords)
                                  frustumRay.y * c.cP - c.sP,
                                  temp * c.cY - frustumRay.x * c.sY));
 
+    return rayDir * (time % 1000);
     // raymarch outputs
 
     // ~~stolen~~ took "inspiration" from https://github.com/Vercidium/voxel-ray-marching/blob/master/source/Map.cs
