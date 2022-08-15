@@ -210,21 +210,21 @@ float Q_rsqrt(float number)
 	return y;
 }
 
-float fract(float x)
+float my_fract(float x)
 {
     if(x < 0)
         return x + (float)((int) x);
     return x - (float)((int) x);
 }
 
-float max(float a, float b)
+float my_max(float a, float b)
 {
     if(a > b)
         return a;
     return b;
 }
 
-int sign(float x)
+int my_sign(float x)
 {
     if(x < 0)
         return -1;
@@ -256,16 +256,17 @@ static void raycastWorld()
     };
 
     // normalize
-    float rsqrt = Q_rsqrt(rayDir.x * rayDir.x + rayDir.y * rayDir.y + rayDir.z * rayDir.z);
+    // TODO negative because this is haunted and flips when debug mode is off
+    float rsqrt = -Q_rsqrt(rayDir.x * rayDir.x + rayDir.y * rayDir.y + rayDir.z * rayDir.z);
     rayDir.x *= rsqrt; rayDir.y *= rsqrt; rayDir.z *= rsqrt;
 
     vec3 ijk = { (int)playerPosX, (int)playerPosY, (int)playerPosZ };
-    vec3 ijkStep = { sign(rayDir.x), sign(rayDir.y), sign(rayDir.z) };
+    vec3 ijkStep = { my_sign(rayDir.x), my_sign(rayDir.y), my_sign(rayDir.z) };
 
     vec3 vInverted = { fabs(1/rayDir.x), fabs(1/rayDir.y), fabs(1/rayDir.z) };
 
-    vec3 dist = { -fract(playerPosX) * ijkStep.x, -fract(playerPosY) * ijkStep.y, -fract(playerPosZ) * ijkStep.z };
-    dist.x += max(ijkStep.x, 0); dist.y += max(ijkStep.y, 0); dist.z += max(ijkStep.z, 0);
+    vec3 dist = { -my_fract(playerPosX) * ijkStep.x, -my_fract(playerPosY) * ijkStep.y, -my_fract(playerPosZ) * ijkStep.z };
+    dist.x += my_max(ijkStep.x, 0); dist.y += my_max(ijkStep.y, 0); dist.z += my_max(ijkStep.z, 0);
     dist.x *= vInverted.x; dist.y *= vInverted.y; dist.z *= vInverted.z;
 
     int axis = 0; // X
@@ -470,6 +471,7 @@ static void on_render()
     glUniform2f(glGetUniformLocation(shader, "c.f"), frustumDivX, frustumDivY);
     glUniform3f(glGetUniformLocation(shader, "c.P"), playerPosX, playerPosY, playerPosZ);
 
+    glUniform3f(glGetUniformLocation(shader, "b"), hoverBlockX, hoverBlockY, hoverBlockZ);
     // render!!
     glRecti(-1,-1,1,1);
 }
@@ -723,13 +725,14 @@ void _start() {
         0,
         SCR_WIDTH,
         SCR_HEIGHT,
-        SDL_WINDOW_OPENGL// | SDL_WINDOW_FULLSCREEN
+        SDL_WINDOW_OPENGL ///| SDL_WINDOW_FULLSCREEN
     );
 
     SDL_GL_CreateContext(window);
     SDL_ShowCursor(SDL_TRUE);
     SDL_SetRelativeMouseMode(SDL_TRUE);
-    
+    SDL_CaptureMouse(SDL_TRUE); 
+
     on_realize();
 
     while (true) {

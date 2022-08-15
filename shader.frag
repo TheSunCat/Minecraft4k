@@ -29,6 +29,9 @@ uniform sampler2D T;
 // SCREEN_SIZE
 uniform vec2 S;
 
+// hoverBlock
+uniform vec3 b;
+
 // fragColor
 out vec4 F;
 
@@ -116,6 +119,8 @@ vec3 getPixel(in vec2 pixel_coords)
             vec3 textureColor = vec3(texture(T,
                                             vec2(float(texFetchX + (blockHit * TR) + 0.5) / float(TR * 16.0),
                                                  float(texFetchY + 0.5)                   / float(TR * 3.0))));
+
+            textureColor += float(ivec3(ijk) == ivec3(b))* 100.0f;
 
             if (dot(textureColor, textureColor) != 0) { // pixel is not transparent
                 
