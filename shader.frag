@@ -124,9 +124,6 @@ vec3 getPixel(in vec2 pixel_coords)
             
                 hitPos = c.P + rayDir * (rayTravelDist - 0.01f);
 
-
-                float lightIntensity = 1;// TODO + (-sign(rayDir[axis]) * l[axis]) / 2.0f;
-
                 // storing in vInverted to work around Shader_Minifier bug
                 float fogIntensity = ((rayTravelDist / RD)) * (0xFF - (axis + 2) % 3 * 50) / 0xFF;
                 vInverted = mix(textureColor, vec3(0), fogIntensity);
@@ -180,8 +177,6 @@ vec3 getPixel(in vec2 pixel_coords)
             axis = 2; // Z
         }
     }
-
-    return vec3(1, 0, 0);
 
     // storing in vInverted to work around Shader_Minifier bug
     vInverted = vec3(0);

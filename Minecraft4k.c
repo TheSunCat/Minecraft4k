@@ -62,16 +62,8 @@ static Random makeRandom(uint64_t seed)
     return (seed ^ RANDOM_multiplier) & RANDOM_mask;
 }
 
-static int my_floor(float x)
-{
-    if(x >= 0)
-        return (int) x;
-    else
-        return (int) x + 1;
-}
-
 // TODO tune this
-#define TRIG_PRECISION 50
+#define TRIG_PRECISION 20
 static float my_sin(float x)
 {
     double t = x;
@@ -84,20 +76,6 @@ static float my_sin(float x)
     }
     return (float)sine;
 }
-
-/*
-#define EXTRA_PRECISION true
-static float my_cos(float x)
-{
-    float tp = 1./(2.*M_PI);
-    x *= tp;
-    x -= .25 + my_floor(x + .25);
-    x *= 16. * (fabs(x) - .5);
-#if EXTRA_PRECISION
-    x += .225 * x * (fabs(x) - 1.);
-#endif
-    return x;
-}*/
 
 static float my_cos(float x)
 {
@@ -285,9 +263,6 @@ static void on_render()
 
     glUniform2f(glGetUniformLocation(shader, "S"), SCR_WIDTH, SCR_HEIGHT);
 
-    // TODO remove
-    glUniform1i(glGetUniformLocation(shader, "time"), currentTime()); 
-
 #ifdef DEBUG
     printf("cosYaw: %f\ncosPitch: %f\nsinYaw: %f\nsinPitch: %f\nfrustumDiv: (%f, %f)\nplayerPos: (%f, %f, %f)\n\n---------------------------\n\n", cosYaw, cosPitch, sinYaw, sinPitch, frustumDivX, frustumDivY, playerPosX, playerPosY, playerPosZ);
 #endif
@@ -301,7 +276,6 @@ static void on_render()
 
     // render!!
     glRecti(-1,-1,1,1);
-    glFlush();
 }
 
 static void generateWorld()
@@ -461,16 +435,12 @@ static void generateTextures()
     glGenTextures(1, &textureAtlasTex);
     glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    //glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, TEXTURE_RES * 16, TEXTURE_RES * 3);
-    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, TEXTURE_RES * 16, TEXTURE_RES * 3, GL_BGRA, GL_UNSIGNED_BYTE, textureAtlas);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_RES * 16, TEXTURE_RES * 3, 0, GL_BGRA, GL_UNSIGNED_BYTE, textureAtlas);
-    glGenerateMipmap(GL_TEXTURE_2D); // TODO needed??
-    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 static void on_realize()
