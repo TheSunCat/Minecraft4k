@@ -16,7 +16,7 @@
 
 #define BLOCK_AIR 0
 #define BLOCK_GRASS 1
-#define BLOCK_DEFAULT_DIRT 2
+#define BLOCK_DIRT 2
 #define BLOCK_STONE 4
 #define BLOCK_BRICKS 5
 #define BLOCK_WOOD 7

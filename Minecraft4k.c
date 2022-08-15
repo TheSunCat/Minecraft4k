@@ -16,6 +16,11 @@
 
 #include "Constants.h"
 
+// OpenGL IDs
+GLuint shader;
+GLuint worldTex;
+GLuint textureAtlasTex;
+
 static uint64_t currentTime()
 {
     return SDL_GetTicks64();
@@ -96,6 +101,15 @@ uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
 static void setBlock(int x, int y, int z, uint8_t block)
 {
     world[x + y * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT] = block;
+
+    glBindTexture(GL_TEXTURE_3D, worldTex);
+    glTexSubImage3D(GL_TEXTURE_3D,              // target
+        0,                                      // level
+        x, y, z,                                // offset
+        1, 1, 1,                                // size
+        GL_RED,                                 // format
+        GL_UNSIGNED_BYTE,                       // type
+        &block);                                // data
 }
 
 static uint8_t getBlock(int x, int y, int z)
@@ -109,11 +123,14 @@ static int isWithinWorld(int x, int y, int z)
            x < WORLD_SIZE && y < WORLD_HEIGHT && z < WORLD_SIZE;
 }
 
-SDL_Window* window;
+int hoverBlockX = -1, hoverBlockY = -1, hoverBlockZ = -1;
 
-GLuint shader;
-GLuint worldTex;
-GLuint textureAtlasTex;
+static void placeBlock(uint8_t block)
+{
+    setBlock(hoverBlockX, hoverBlockY, hoverBlockZ, block);
+}
+
+SDL_Window* window;
 
 float cameraPitch = 0;
 float cameraYaw = 0;
@@ -123,10 +140,11 @@ float playerVelocityX = 0, playerVelocityY = 0, playerVelocityZ = 0;
 // spawn player at world center
 float playerPosX = WORLD_SIZE / 2.0f + 0.5f, playerPosY = 1, playerPosZ = WORLD_SIZE / 2.0f + 0.5f;
 
+uint32_t lastMouseState = 0;
 static void updateMouse()
 {
     int x, y;
-    SDL_GetRelativeMouseState(&x, &y);
+    uint32_t mouseState = SDL_GetRelativeMouseState(&x, &y);
 
     cameraYaw += x / 500.0f;
     cameraPitch -= y / 500.0f;
@@ -139,6 +157,20 @@ static void updateMouse()
             cameraYaw = M_PI + (cameraYaw + M_PI);
     }
     cameraPitch = clamp(cameraPitch, -M_PI / 2.0f, M_PI / 2.0f);
+
+    hoverBlockX = playerPosX; hoverBlockY = playerPosY + 2; hoverBlockZ = playerPosZ;
+
+    if((mouseState & SDL_BUTTON_LMASK) && !(lastMouseState & SDL_BUTTON_LMASK))
+    {
+        placeBlock(BLOCK_AIR);
+    }
+
+    if((mouseState & SDL_BUTTON_RMASK) && !(lastMouseState & SDL_BUTTON_RMASK))
+    {
+        placeBlock(BLOCK_DIRT);
+    }
+
+    lastMouseState = mouseState;
 }
 
 const uint8_t* kb = NULL;
@@ -261,10 +293,6 @@ static void on_render()
     glUniform1i(glGetUniformLocation(shader, "T"), 1);
 
     glUniform2f(glGetUniformLocation(shader, "S"), SCR_WIDTH, SCR_HEIGHT);
-
-#ifdef DEBUG
-    printf("cosYaw: %f\ncosPitch: %f\nsinYaw: %f\nsinPitch: %f\nfrustumDiv: (%f, %f)\nplayerPos: (%f, %f, %f)\n\n---------------------------\n\n", cosYaw, cosPitch, sinYaw, sinPitch, frustumDivX, frustumDivY, playerPosX, playerPosY, playerPosZ);
-#endif
 
     glUniform1f(glGetUniformLocation(shader, "c.cY"), cosYaw);
     glUniform1f(glGetUniformLocation(shader, "c.cP"), cosPitch);
