@@ -26,6 +26,9 @@ uniform sampler3D W;
 // textureAtlas (texture 1)
 uniform sampler2D T;
 
+// SCREEN_SIZE
+uniform vec2 S;
+
 // fragColor
 out vec4 F;
 
@@ -45,7 +48,11 @@ bool inWorld(ivec3 pos)
 
 vec3 getPixel(in vec2 pixel_coords)
 {
-    vec2 frustumRay = (pixel_coords - (0.5 /* S*/)) / c.f; // TODO do I mult by SCREEN_SIZE?
+    //return texture(W, vec3(pixel_coords.xy, 1) / WD).rgb * 16;
+    return texture(T, pixel_coords.xy / S).rgb;
+
+
+    vec2 frustumRay = (pixel_coords - (0.5 / S)) / c.f; // TODO do I mult by SCREEN_SIZE?
 
     // rotate frustum space to world space
     float temp = c.cP + frustumRay.y * c.sP;
@@ -89,8 +96,6 @@ vec3 getPixel(in vec2 pixel_coords)
         if (blockHit != 0) // BLOCK_AIR
         {
             vec3 hitPos = c.P + rayDir * rayTravelDist;
-            
-            return vec3(0.5);
             
             // side of block
             int texFetchX = int(mod((hitPos.x + hitPos.z) * TR, TR));
@@ -183,5 +188,5 @@ vec3 getPixel(in vec2 pixel_coords)
 
 void main()
 {
-    F = vec4(getPixel(vec2(gl_FragCoord.x, 1.0f - gl_FragCoord.y)), 1.0);
+    F = vec4(getPixel(vec2(gl_FragCoord.x, S.y - gl_FragCoord.y)), 1.0);
 }

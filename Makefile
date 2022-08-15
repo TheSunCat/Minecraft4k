@@ -9,7 +9,8 @@ CFLAGS += -Wl,--gc-sections
 ifeq ($(DEBUG),false)
 	CFLAGS += -nostdlib
 else
-	CFLAGS += -DDEBUG=true
+	CFLAGS += -DDEBUG=true -g
+	LDFLAGS += -g
 endif
 
 .PHONY: clean checkgccversion noelfver

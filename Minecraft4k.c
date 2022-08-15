@@ -22,26 +22,25 @@ static uint64_t currentTime()
 }
 
 // It's just the Java Random class
-#define RANDOM_seedUniquifier 8682522807148012
-#define RANDOM_multiplier 0x5DEECE66D
-#define RANDOM_addend 0xBL
-#define RANDOM_mask ((((uint64_t)1) << 48) - 1)
+const uint64_t RANDOM_multiplier = 0x5DEECE66D;
+const uint64_t RANDOM_addend = 0xBL;
+const uint64_t RANDOM_mask = (((uint64_t)1) << 48) - 1;
 
 typedef uint64_t Random;
 
-static uint64_t RANDOM_next(Random rand, const int bits)
+static uint64_t RANDOM_next(Random* rand, const int bits)
 {
-    rand = (rand * RANDOM_multiplier + RANDOM_addend) & RANDOM_mask;
+    *rand = (*rand * RANDOM_multiplier + RANDOM_addend) & RANDOM_mask;
 
-    return rand >> (48 - bits);
+    return *rand >> (48 - bits);
 }
 
-uint32_t nextInt(Random rand)
+uint32_t nextInt(Random* rand)
 {
     return RANDOM_next(rand, 32);
 }
 
-uint32_t nextIntBound(Random rand, int32_t bound)
+uint32_t nextIntBound(Random* rand, int32_t bound)
 {
     uint32_t r = RANDOM_next(rand, 31);
 
@@ -120,7 +119,6 @@ SDL_Window* window;
 
 GLuint shader;
 GLuint worldTexture;
-GLuint textureAtlas;
 
 GLuint textureAtlasTex;
 
@@ -152,7 +150,7 @@ void updateMouse()
 uint64_t lastFrameTime = 0;
 uint64_t lastUpdateTime;
 
-static void on_render ()
+static void on_render()
 {
     const uint64_t frameTime = currentTime();
     if(lastFrameTime == 0)
@@ -262,6 +260,8 @@ static void on_render ()
     glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
     glUniform1i(glGetUniformLocation(shader, "T"), 1);
 
+    glUniform2f(glGetUniformLocation(shader, "S"), SCR_WIDTH, SCR_HEIGHT);
+
     glUniform1f(glGetUniformLocation(shader, "c.cY"), cosYaw);
     glUniform1f(glGetUniformLocation(shader, "c.cP"), cosPitch);
     glUniform1f(glGetUniformLocation(shader, "c.sY"), sinYaw);
@@ -285,14 +285,14 @@ static void generateTextures()
     // procedurally generates the 16x3 textureAtlas
     // gsd = grayscale detail
     for (int blockID = 1; blockID < 16; blockID++) {
-        int gsd_tempA = 0xFF - nextIntBound(rand, 0x60);
+        int gsd_tempA = 0xFF - nextIntBound(&rand, 0x60);
 
         for (int y = 0; y < TEXTURE_RES * 3; y++) {
             for (int x = 0; x < TEXTURE_RES; x++) {
                 // gets executed per pixel/texel
 
-                if (blockID != BLOCK_STONE || nextIntBound(rand, 3) == 0) // if the block type is stone, update the noise value less often to get a stretched out look
-                    gsd_tempA = 0xFF - nextIntBound(rand, 0x60);
+                if (blockID != BLOCK_STONE || nextIntBound(&rand, 3) == 0) // if the block type is stone, update the noise value less often to get a stretched out look
+                    gsd_tempA = 0xFF - nextIntBound(&rand, 0x60);
 
                 int tint = 0x966C4A; // brown (dirt)
                 switch (blockID)
@@ -337,9 +337,9 @@ static void generateTextures()
                         if (dy > dx)
                             dx = dy;
 
-                        gsd_tempA = 196 - nextIntBound(rand, 32) + dx % 3 * 32;
+                        gsd_tempA = 196 - nextIntBound(&rand, 32) + dx % 3 * 32;
                     }
-                    else if (nextIntBound(rand, 2) == 0) {
+                    else if (nextIntBound(&rand, 2) == 0) {
                         // make the gsd 50% brighter on random pixels of the bark
                         // and 50% darker if x happens to be odd
                         gsd_tempA = gsd_tempA * (150 - (x & 1) * 100) / 100;
@@ -361,7 +361,7 @@ static void generateTextures()
 
                 if (blockID == BLOCK_LEAVES) {
                     tint = 0x50D937; // green
-                    if (nextIntBound(rand, 2) == 0) {
+                    if (nextIntBound(&rand, 2) == 0) {
                         tint = 0;
                         gsd_constexpr = 0xFF;
                     }
@@ -388,8 +388,9 @@ static void generateTextures()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, TEXTURE_RES * 16, TEXTURE_RES * 3);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, TEXTURE_RES * 16, TEXTURE_RES * 3, GL_BGRA, GL_UNSIGNED_BYTE, textureAtlas);
+    //glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, TEXTURE_RES * 16, TEXTURE_RES * 3);
+    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, TEXTURE_RES * 16, TEXTURE_RES * 3, GL_BGRA, GL_UNSIGNED_BYTE, textureAtlas);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_RES * 16, TEXTURE_RES * 3, 0, GL_BGRA, GL_UNSIGNED_BYTE, textureAtlas);
     glGenerateMipmap(GL_TEXTURE_2D); // TODO needed??
     glBindTexture(GL_TEXTURE_2D, 0);
 }
@@ -406,12 +407,12 @@ static void generateWorld()
             for (int z = 0; z < WORLD_SIZE; z++) {
                 uint8_t block;
 
-                if (y > maxTerrainHeight + nextIntBound(rand, 8))
-                    block = BLOCK_BRICKS;//nextIntBound(rand, 8) + 1;
+                if (y > maxTerrainHeight + nextIntBound(&rand, 8))
+                    block = nextIntBound(&rand, 8) + 1;
                 else
                     block = BLOCK_AIR;
 
-                if (x == WORLD_SIZE)
+                if (x == WORLD_SIZE) // TODO can't I just start at WORLD_SIZE - 1?
                     continue;
 
                 setBlock(x, y, z, block);
