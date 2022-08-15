@@ -1,13 +1,13 @@
 #version 130
 
 // WORLD_DIMENSIONS
-#define WD vec3(64, 64, 64)
+#define WD vec3(64)
 
 // TEXTURE_RES
 #define TR 16
 
 // RENDER_DIST
-#define RD 80.0
+#define RD 20.0
 
 struct C // Camera
 {
@@ -29,16 +29,13 @@ uniform sampler2D T;
 // SCREEN_SIZE
 uniform vec2 S;
 
-// TODO remove
-uniform int time;
-
 // fragColor
 out vec4 F;
 
 // get the block at the specified position in the world
 int getBlock(ivec3 coords)
 {
-    return int(length(texture(W, coords / WD).xyz) * 36);
+    return int(length(texture(W, coords / WD).xyz) * 36 * 9); // TODO is this correct? seems random
 }
 
 bool inWorld(ivec3 pos)
@@ -105,7 +102,7 @@ vec3 getPixel(in vec2 pixel_coords)
             int texFetchX = int(mod((hitPos.x + hitPos.z) * TR, TR));
             int texFetchY = int(mod(hitPos.y * TR, TR) + TR);
 
-            if (axis == 3) // Y. we hit the top/bottom of block
+            if (axis == 1) // Y. we hit the top/bottom of block
             {
                 texFetchX = int(mod(hitPos.x * TR, TR));
                 texFetchY = int(mod(hitPos.z * TR, TR));
@@ -121,11 +118,9 @@ vec3 getPixel(in vec2 pixel_coords)
                                                  float(texFetchY + 0.5)                   / float(TR * 3.0))));
 
             if (dot(textureColor, textureColor) != 0) { // pixel is not transparent
-            
-                hitPos = c.P + rayDir * (rayTravelDist - 0.01f);
-
+                
                 // storing in vInverted to work around Shader_Minifier bug
-                float fogIntensity = ((rayTravelDist / RD)) * (0xFF - (axis + 2) % 3 * 50) / 0xFF;
+                float fogIntensity = (rayTravelDist / RD) * (0xFF - (axis + 2) % 3 * 5) / 0xFF;
                 vInverted = mix(textureColor, vec3(0), fogIntensity);
                 return vInverted;
             }
