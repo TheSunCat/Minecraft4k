@@ -30,7 +30,7 @@ uniform sampler2D T;
 uniform vec2 S;
 
 // hoverBlock
-uniform vec3 b;
+uniform ivec3 b;
 
 // fragColor
 out vec4 F;
@@ -102,25 +102,26 @@ vec3 getPixel(in vec2 pixel_coords)
             vec3 hitPos = c.P + rayDir * rayTravelDist;
             
             // side of block
-            int texFetchX = int(mod((hitPos.x + hitPos.z) * TR, TR));
-            int texFetchY = int(mod(hitPos.y * TR, TR) + TR);
+            vec2 texFetch = fract(vec2(hitPos.x + hitPos.z, hitPos.y));
+            texFetch.y += 1;
 
+            // TODO
             if (axis == 1) // Y. we hit the top/bottom of block
             {
-                texFetchX = int(mod(hitPos.x * TR, TR));
-                texFetchY = int(mod(hitPos.z * TR, TR));
+                texFetch = fract(hitPos.xz);
 
-                if (rayDir.y < 0.0F) // looking at the underside of a block
-                    texFetchY += TR * 2;
+                if (rayDir.y < 0.0f) // looking at the underside of a block
+                    texFetch.y += 2;
             }
 
-            //return vec3(float(blockHit) /8.f);
+            texFetch.x += blockHit;
 
-            vec3 textureColor = vec3(texture(T,
-                                            vec2(float(texFetchX + (blockHit * TR) + 0.5) / float(TR * 16.0),
-                                                 float(texFetchY + 0.5)                   / float(TR * 3.0))));
+            vec3 textureColor = texture(T, (trunc(texFetch * TR) + 0.5) / (TR * vec2(16, 3))).xyz;
+    
 
-            textureColor += float(ivec3(ijk) == ivec3(b))* 100.0f;
+            // highlight hovered block
+            // multiply by 9 to make sure it's white
+            textureColor += int(ijk == b && any(greaterThan(abs(fract(texFetch) - 0.5), vec2(.4375)))) * 9;
 
             if (dot(textureColor, textureColor) != 0) { // pixel is not transparent
                 

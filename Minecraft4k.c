@@ -95,13 +95,6 @@ float clamp(float x, float min, float max)
         return max;
     return x;
 }
-/*
-float abs(float x)
-{
-    if(x < 0)
-        return -x;
-    return x;
-}*/
 
 uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
 
@@ -189,8 +182,6 @@ static void updateMouse()
 
 float my_fract(float x)
 {
-    if(x < 0)
-        return x + (float)((int) x);
     return x - (float)((int) x);
 }
 
@@ -427,7 +418,7 @@ static void on_render()
     glUniform2f(glGetUniformLocation(shader, "c.f"), frustumDivX, frustumDivY);
     glUniform3f(glGetUniformLocation(shader, "c.P"), playerPosX, playerPosY, playerPosZ);
 
-    glUniform3f(glGetUniformLocation(shader, "b"), hoverBlockX, hoverBlockY, hoverBlockZ);
+    glUniform3i(glGetUniformLocation(shader, "b"), hoverBlockX, hoverBlockY, hoverBlockZ);
     // render!!
     glRecti(-1,-1,1,1);
 }
