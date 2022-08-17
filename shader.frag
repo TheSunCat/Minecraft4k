@@ -1,14 +1,5 @@
 #version 130
 
-// WORLD_DIMENSIONS
-vec3 WD = vec3(64);
-
-// TEXTURE_RES
-int TR = 16;
-
-// RENDER_DIST
-float RD = 20.0;
-
 // camera stuff
 uniform float c, d, e, g; // cosYaw, cosPitch, sinYaw, sinPitch
 uniform vec2 r,S;     // frustumDiv, SCREEN_SIZE
@@ -26,19 +17,13 @@ uniform ivec3 b;
 // fragColor
 out vec4 Z;
 
-// get the block at the specified position in the world
-int getBlock(ivec3 coords)
-{
-    return int(length(texture(W, coords / WD).xyz) * 36 * 9); // TODO is this correct? seems random
-}
-
-bool inWorld(ivec3 pos)
+/*bool inWorld(ivec3 pos)
 {
     vec3 lessThanWorld = step(vec3(0, -2, 0), pos);
     vec3 greaterThanWorld = step(WD, pos);
 
     return dot(lessThanWorld, lessThanWorld) * dot(greaterThanWorld, greaterThanWorld) == 0;
-}
+}*/
 
 void main()
 {
@@ -76,13 +61,15 @@ void main()
 
     float rayTravelDist = 0;
 
-    while (rayTravelDist <= RD) // RENDER_DIST
+    while (rayTravelDist <= 20.0) // TODO replace RENDER_DIST
     {
         // Exit check
-        if(!inWorld(ijk))
-            break;
+        //if(!inWorld(ijk))
+        //    break;
 
-        int blockHit = getBlock(ijk);
+        // get block from world
+        // TODO replace WORLD_DIMENSIONS
+        int blockHit = int(texture(W, ijk / 64.0).x * 36 * 9); // TODO is this correct? seems random
 
         if (blockHit != 0) // BLOCK_AIR
         {
@@ -102,7 +89,8 @@ void main()
 
             texFetch.x += blockHit;
 
-            vec3 textureColor = texture(T, (trunc(texFetch * TR) + 0.5) / (TR * vec2(16, 3))).xyz;
+            // TODO replace TEXTURE_RES
+            vec3 textureColor = texture(T, (trunc(texFetch * 16) + 0.5) / (16 * vec2(16, 3))).xyz;
 
             // highlight hovered block
             // multiply by 9 to make sure it's white
@@ -110,7 +98,7 @@ void main()
 
             if (dot(textureColor, textureColor) != 0) { // pixel is not transparent
                 
-                float fogIntensity = (rayTravelDist / RD) * (0xFF - (axis + 2) % 3 * 5) / 0xFF;
+                float fogIntensity = (rayTravelDist / 20.0) * (0xFF - (axis + 2) % 3 * 5) / 0xFF;
                 Z = vec4(mix(textureColor, vec3(0), fogIntensity), 1);
                 return;
             }
