@@ -161,8 +161,6 @@ static void updateMouse()
     }
     cameraPitch = clamp(cameraPitch, -M_PI / 2.0f, M_PI / 2.0f);
 
-    //hoverBlockX = playerPosX; hoverBlockY = playerPosY + 2; hoverBlockZ = playerPosZ;
-
     if((mouseState & SDL_BUTTON_LMASK) && !(lastMouseState & SDL_BUTTON_LMASK))
     {
         placeBlock(BLOCK_AIR);
@@ -176,6 +174,8 @@ static void updateMouse()
     lastMouseState = mouseState;
 }
 
+// TODO fix bad
+
 // ---------------
 // BAD STARTS HERE
 // ---------------
@@ -185,13 +185,6 @@ float my_fract(float x)
     return x - (float)((int) x);
 }
 
-float my_max(float a, float b)
-{
-    if(a > b)
-        return a;
-    return b;
-}
-
 int my_sign(float x)
 {
     if(x < 0)
@@ -199,7 +192,7 @@ int my_sign(float x)
     return 1;
 }
 
-static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPitch, float frustumDivX, float frustumDivY)
+static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPitch)
 {
     // rotate frustum space to world space
     const float rayDirX = cosPitch * sinYaw;
@@ -222,7 +215,7 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
     float distY = -my_fract(playerPosY) * jStep;
     float distZ = -my_fract(playerPosZ) * kStep;
 
-    distX += my_max(iStep, 0); distY += my_max(jStep, 0); distZ += my_max(kStep, 0);
+    distX += iStep == 1; distY += jStep == 1; distZ += kStep == 1;
     distX *= vInvertedX; distY *= vInvertedY; distZ *= vInvertedZ;
 
     float rayTravelDist = 0;
@@ -304,7 +297,6 @@ static void on_render()
     const uint64_t frameTime = currentTime();
     if(lastFrameTime == 0)
     {
-        lastFrameTime = frameTime - 16;
         lastUpdateTime = frameTime;
     }
 
@@ -319,7 +311,7 @@ static void on_render()
     float frustumDivY = (SCR_HEIGHT * FOV) / 120.f;
 
     // update position for destroying blocks
-    raycastWorld(sinYaw, cosYaw, sinPitch, cosPitch, frustumDivX, frustumDivY);
+    raycastWorld(sinYaw, cosYaw, sinPitch, cosPitch);
 
     updateMouse();
     updateController();

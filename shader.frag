@@ -97,15 +97,12 @@ vec3 getPixel(in vec2 pixel_coords)
 
         if (blockHit != 0) // BLOCK_AIR
         {
-            //return vec3(0, 1, 0);
-
             vec3 hitPos = c.P + rayDir * rayTravelDist;
             
             // side of block
             vec2 texFetch = fract(vec2(hitPos.x + hitPos.z, hitPos.y));
             texFetch.y += 1;
 
-            // TODO
             if (axis == 1) // Y. we hit the top/bottom of block
             {
                 texFetch = fract(hitPos.xz);
@@ -117,7 +114,6 @@ vec3 getPixel(in vec2 pixel_coords)
             texFetch.x += blockHit;
 
             vec3 textureColor = texture(T, (trunc(texFetch * TR) + 0.5) / (TR * vec2(16, 3))).xyz;
-    
 
             // highlight hovered block
             // multiply by 9 to make sure it's white
@@ -125,10 +121,8 @@ vec3 getPixel(in vec2 pixel_coords)
 
             if (dot(textureColor, textureColor) != 0) { // pixel is not transparent
                 
-                // storing in vInverted to work around Shader_Minifier bug
                 float fogIntensity = (rayTravelDist / RD) * (0xFF - (axis + 2) % 3 * 5) / 0xFF;
-                vInverted = mix(textureColor, vec3(0), fogIntensity);
-                return vInverted;
+                return mix(textureColor, vec3(0), fogIntensity);
             }
         }
 
@@ -137,52 +131,36 @@ vec3 getPixel(in vec2 pixel_coords)
         {
             if (dist.y < dist.z)
             {
-                // Advance to the closest voxel boundary in the Y direction
-
-                // Increment the chunk-relative position and the block access position
-                ijk.y += ijkStep.y;
-
-                // Update our progress in the ray 
-                rayTravelDist = dist.y;
-
-                // Set the new distance to the next voxel Y boundary
-                dist.y += vInverted.y;
-
-                // For collision purposes we also store the last axis that the ray collided with
-                // This allows us to reflect particle rayDir on the correct axis
                 axis = 1; // Y
             }
             else
             {
-                ijk.z += ijkStep.z;
-
-                rayTravelDist = dist.z;
-                dist.z += vInverted.z;
                 axis = 2; // Z
             }
         }
         else if (dist.x < dist.z)
         {
-            ijk.x += ijkStep.x;
-
-            rayTravelDist = dist.x;
-            dist.x += vInverted.x;
             axis = 0; // X
         }
         else
         {
-            ijk.z += ijkStep.z;
-
-            rayTravelDist = dist.z;
-            dist.z += vInverted.z;
             axis = 2; // Z
         }
+
+        // Advance to the closest voxel boundary in the axis direction
+
+        // Increment the chunk-relative position and the block access position
+        ijk[axis] += ijkStep[axis];
+
+        // Update our progress in the ray 
+        rayTravelDist = dist[axis];
+
+        // Set the new distance to the next voxel Y boundary
+        dist[axis] += vInverted[axis];
+
     }
 
-    // storing in vInverted to work around Shader_Minifier bug
-    vInverted = vec3(0);
-
-    return vInverted;
+    return vec3(0);
 }
 
 void main()
