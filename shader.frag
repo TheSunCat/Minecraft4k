@@ -9,16 +9,13 @@
 // RENDER_DIST
 #define RD 20.0
 
-struct C // Camera
-{
-    float cY;    // cosYaw
-    float cP;    // cosPitch
-    float sY;    // sinYaw
-    float sP;    // sinPitch
-    vec2 f;     // frustumDiv
-    vec3 P;     // Position
-};
-uniform C c; // camera
+// camera stuff
+uniform float c;    // cosYaw
+uniform float d;    // cosPitch
+uniform float e;    // sinYaw
+uniform float f;    // sinPitch
+uniform vec2 r;     // frustumDiv
+uniform vec3 P;     // Position
 
 // world (texture 0)
 uniform sampler3D W;
@@ -33,7 +30,7 @@ uniform vec2 S;
 uniform ivec3 b;
 
 // fragColor
-out vec4 F;
+out vec4 Z;
 
 // get the block at the specified position in the world
 int getBlock(ivec3 coords)
@@ -51,14 +48,14 @@ bool inWorld(ivec3 pos)
 
 void main()
 {
-    vec2 frustumRay = (vec2(gl_FragCoord.x, S.y - gl_FragCoord.y) - (0.5 * S)) / (c.f);
+    vec2 frustumRay = (vec2(gl_FragCoord.x, S.y - gl_FragCoord.y) - (0.5 * S)) / (r);
 
     // rotate frustum space to world space
-    float temp = c.cP + frustumRay.y * c.sP;
+    float temp = d + frustumRay.y * f;
 
-    vec3 rayDir = normalize(vec3(frustumRay.x * c.cY + temp * c.sY,
-                                 frustumRay.y * c.cP - c.sP,
-                                 temp * c.cY - frustumRay.x * c.sY));
+    vec3 rayDir = normalize(vec3(frustumRay.x * c + temp * e,
+                                 frustumRay.y * d - f,
+                                 temp * c - frustumRay.x * e));
 
     // raymarch outputs
 
@@ -67,7 +64,7 @@ void main()
     // Optimized by keeping block lookups within the current chunk, which minimizes bitshifts, masks and multiplication operations
 
     // Determine the chunk-relative position of the ray using a bit-mask
-    ivec3 ijk = ivec3(c.P);
+    ivec3 ijk = ivec3(P);
 
 
     // The amount to increase i, j and k in each axis (either 1 or -1)
@@ -77,7 +74,7 @@ void main()
     vec3 vInverted = abs(1 / rayDir);
 
     // The distance to the closest voxel boundary in units of rayTravelDist
-    vec3 dist = -fract(c.P) * ijkStep;
+    vec3 dist = -fract(P) * ijkStep;
     dist += max(ijkStep, vec3(0));
     dist *= vInverted;
 
@@ -95,7 +92,7 @@ void main()
 
         if (blockHit != 0) // BLOCK_AIR
         {
-            vec3 hitPos = c.P + rayDir * rayTravelDist;
+            vec3 hitPos = P + rayDir * rayTravelDist;
             
             // side of block
             vec2 texFetch = fract(vec2(hitPos.x + hitPos.z, hitPos.y));
@@ -120,7 +117,7 @@ void main()
             if (dot(textureColor, textureColor) != 0) { // pixel is not transparent
                 
                 float fogIntensity = (rayTravelDist / RD) * (0xFF - (axis + 2) % 3 * 5) / 0xFF;
-                F = vec4(mix(textureColor, vec3(0), fogIntensity), 1);
+                Z = vec4(mix(textureColor, vec3(0), fogIntensity), 1);
                 return;
             }
         }
@@ -159,5 +156,5 @@ void main()
 
     }
 
-    F = vec4(0);
+    Z = vec4(0);
 }

@@ -430,12 +430,12 @@ static void on_render()
 
     glUniform2f(glGetUniformLocation(shader, "S"), SCR_WIDTH, SCR_HEIGHT);
 
-    glUniform1f(glGetUniformLocation(shader, "c.cY"), cosYaw);
-    glUniform1f(glGetUniformLocation(shader, "c.cP"), cosPitch);
-    glUniform1f(glGetUniformLocation(shader, "c.sY"), sinYaw);
-    glUniform1f(glGetUniformLocation(shader, "c.sP"), sinPitch);
-    glUniform2f(glGetUniformLocation(shader, "c.f"), frustumDivX, frustumDivY);
-    glUniform3f(glGetUniformLocation(shader, "c.P"), playerPosX, playerPosY, playerPosZ);
+    glUniform1f(glGetUniformLocation(shader, "c"), cosYaw);
+    glUniform1f(glGetUniformLocation(shader, "d"), cosPitch);
+    glUniform1f(glGetUniformLocation(shader, "e"), sinYaw);
+    glUniform1f(glGetUniformLocation(shader, "f"), sinPitch);
+    glUniform2f(glGetUniformLocation(shader, "r"), frustumDivX, frustumDivY);
+    glUniform3f(glGetUniformLocation(shader, "P"), playerPosX, playerPosY, playerPosZ);
 
     glUniform3i(glGetUniformLocation(shader, "b"), hoverBlockX, hoverBlockY, hoverBlockZ);
     // render!!
