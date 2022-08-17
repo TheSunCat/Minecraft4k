@@ -18,7 +18,8 @@ else
 	LDFLAGS += -g
 endif
 
-CFLAGS += -Wl,--gc-sections,--no-keep-memory,--no-export-dynamic,--orphan-handling=discard,-z,max-page-size=256
+CFLAGS += -Wl,--gc-sections,--no-keep-memory,--no-export-dynamic,--orphan-handling=discard,-z,noseparate-code,-z,stack-size=0
+#TODO ,-z,max-page-size=256,--no-dynamic-linker,-nostdlib
 
 .PHONY: clean checkgccversion noelfver
 

@@ -138,6 +138,7 @@ static void placeBlock(uint8_t block)
     if(placeBlockX == -1)
         return;
 
+    // TODO maybe shouldn't place if in player, but would require a whole collision check here
     setBlock(placeBlockX, placeBlockY, placeBlockZ, block);
 }
 
@@ -448,7 +449,7 @@ static void generateWorld()
     long long seed = 18295169L;
     Random rand = makeRandom(seed);
 
-    for (int x = WORLD_SIZE; x >= 0; x--) {
+    for (int x = 0; x < WORLD_SIZE; x++) {
         for (int y = 0; y < WORLD_HEIGHT; y++) {
             for (int z = 0; z < WORLD_SIZE; z++) {
                 uint8_t block;
@@ -459,9 +460,6 @@ static void generateWorld()
                     block = nextIntBound(&rand, 8) + 1;
                 else
                     block = BLOCK_AIR;
-
-                if (x == WORLD_SIZE) // TODO can't I just start at WORLD_SIZE - 1?
-                    continue;
 
                 setBlock(x, y, z, block);
             }
@@ -684,22 +682,22 @@ void _start() {
     asm volatile("sub $8, %rsp\n");
 
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
-    SDL_SetHint("SDL_HINT_MOUSE_RELATIVE_MODE_WARP", "1");
+    //SDL_SetHint("SDL_HINT_MOUSE_RELATIVE_MODE_WARP", "1");
     window = SDL_CreateWindow(
         "",
         0,
         0,
         SCR_WIDTH,
         SCR_HEIGHT,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_INPUT_GRABBED//| SDL_WINDOW_FULLSCREEN
+        SDL_WINDOW_OPENGL// | SDL_WINDOW_INPUT_GRABBED//| SDL_WINDOW_FULLSCREEN
     );
 
     SDL_GL_CreateContext(window);
-    SDL_ShowCursor(SDL_TRUE);
+    //SDL_ShowCursor(SDL_TRUE);
     SDL_SetRelativeMouseMode(SDL_TRUE);
-    SDL_CaptureMouse(SDL_TRUE); 
-    SDL_SetWindowGrab(window, SDL_TRUE);
-    SDL_SetWindowMouseGrab(window, SDL_TRUE);
+    //SDL_CaptureMouse(SDL_TRUE); 
+    //SDL_SetWindowGrab(window, SDL_TRUE);
+    //SDL_SetWindowMouseGrab(window, SDL_TRUE);
 
     on_realize();
 
