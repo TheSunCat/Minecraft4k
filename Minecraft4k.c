@@ -124,13 +124,21 @@ static int isWithinWorld(int x, int y, int z)
 }
 
 int hoverBlockX = -1, hoverBlockY = -1, hoverBlockZ = -1;
+int placeBlockX = -1, placeBlockY = -1, placeBlockZ = -1;
 
-static void placeBlock(uint8_t block)
+static void breakBlock()
 {
     if(hoverBlockX == -1)
         return;
 
-    setBlock(hoverBlockX, hoverBlockY, hoverBlockZ, block);
+    setBlock(hoverBlockX, hoverBlockY, hoverBlockZ, BLOCK_AIR);
+}
+static void placeBlock(uint8_t block)
+{
+    if(placeBlockX == -1)
+        return;
+
+    setBlock(placeBlockX, placeBlockY, placeBlockZ, block);
 }
 
 SDL_Window* window;
@@ -163,7 +171,7 @@ static void updateMouse()
 
     if((mouseState & SDL_BUTTON_LMASK) && !(lastMouseState & SDL_BUTTON_LMASK))
     {
-        placeBlock(BLOCK_AIR);
+        breakBlock();
     }
 
     if((mouseState & SDL_BUTTON_RMASK) && !(lastMouseState & SDL_BUTTON_RMASK))
@@ -218,6 +226,9 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
     distX += iStep == 1; distY += jStep == 1; distZ += kStep == 1;
     distX *= vInvertedX; distY *= vInvertedY; distZ *= vInvertedZ;
 
+    const int X = 0, Y = 1, Z = 2;
+    int axis = X;
+
     float rayTravelDist = 0;
     while(rayTravelDist < PLAYER_REACH)
     {
@@ -229,9 +240,18 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
 
         if(blockHit != 0) // BLOCK_AIR
         {
-            // TODO set placeBlock as well
-           
             hoverBlockX = i; hoverBlockY = j; hoverBlockZ = k;
+            placeBlockX = i; placeBlockY = j; placeBlockZ = k;
+            switch(axis) {
+            case X:
+                placeBlockX -= my_sign(rayDirX);
+                break;
+            case Y:
+                placeBlockY -= my_sign(rayDirY);
+                break;
+            case Z:
+                placeBlockZ -= my_sign(rayDirZ);
+            }
             return;
         }
 
@@ -240,8 +260,8 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
         {
             if (distY < distZ)
             {
+                axis = Y;
                 // Advance to the closest voxel boundary in the Y direction
-                
                 // Increment the chunk-relative position and the block access position
                 j += jStep;
 
@@ -253,6 +273,8 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
             }
             else
             {
+                axis = Z;
+
                 k += kStep;
 
                 rayTravelDist = distZ;
@@ -261,6 +283,8 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
         }
         else if (distX < distZ)
         {
+            axis = X;
+
             i += iStep;
 
             rayTravelDist = distX;
@@ -268,6 +292,8 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
         }
         else
         {
+            axis = Z;
+
             k += kStep;
 
             rayTravelDist = distZ;
