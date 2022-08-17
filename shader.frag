@@ -49,11 +49,9 @@ bool inWorld(ivec3 pos)
     return dot(lessThanWorld, lessThanWorld) * dot(greaterThanWorld, greaterThanWorld) == 0;
 }
 
-vec3 getPixel(in vec2 pixel_coords)
+void main()
 {
-    //return texture(W, vec3(pixel_coords.xy / S, 0)).rgb * 36;
-
-    vec2 frustumRay = (pixel_coords - (0.5 * S)) / (c.f);
+    vec2 frustumRay = (vec2(gl_FragCoord.x, S.y - gl_FragCoord.y) - (0.5 * S)) / (c.f);
 
     // rotate frustum space to world space
     float temp = c.cP + frustumRay.y * c.sP;
@@ -122,7 +120,8 @@ vec3 getPixel(in vec2 pixel_coords)
             if (dot(textureColor, textureColor) != 0) { // pixel is not transparent
                 
                 float fogIntensity = (rayTravelDist / RD) * (0xFF - (axis + 2) % 3 * 5) / 0xFF;
-                return mix(textureColor, vec3(0), fogIntensity);
+                F = vec4(mix(textureColor, vec3(0), fogIntensity), 1);
+                return;
             }
         }
 
@@ -160,10 +159,5 @@ vec3 getPixel(in vec2 pixel_coords)
 
     }
 
-    return vec3(0);
-}
-
-void main()
-{
-    F = vec4(getPixel(vec2(gl_FragCoord.x, S.y - gl_FragCoord.y)), 1.0);
+    F = vec4(0);
 }
