@@ -1,20 +1,17 @@
 #version 130
 
 // WORLD_DIMENSIONS
-#define WD vec3(64)
+vec3 WD = vec3(64);
 
 // TEXTURE_RES
-#define TR 16
+int TR = 16;
 
 // RENDER_DIST
-#define RD 20.0
+float RD = 20.0;
 
 // camera stuff
-uniform float c;    // cosYaw
-uniform float d;    // cosPitch
-uniform float e;    // sinYaw
-uniform float f;    // sinPitch
-uniform vec2 r;     // frustumDiv
+uniform float c, d, e, g; // cosYaw, cosPitch, sinYaw, sinPitch
+uniform vec2 r,S;     // frustumDiv, SCREEN_SIZE
 uniform vec3 P;     // Position
 
 // world (texture 0)
@@ -22,9 +19,6 @@ uniform sampler3D W;
 
 // textureAtlas (texture 1)
 uniform sampler2D T;
-
-// SCREEN_SIZE
-uniform vec2 S;
 
 // hoverBlock
 uniform ivec3 b;
@@ -51,10 +45,10 @@ void main()
     vec2 frustumRay = (vec2(gl_FragCoord.x, S.y - gl_FragCoord.y) - (0.5 * S)) / (r);
 
     // rotate frustum space to world space
-    float temp = d + frustumRay.y * f;
+    float temp = d + frustumRay.y * g;
 
     vec3 rayDir = normalize(vec3(frustumRay.x * c + temp * e,
-                                 frustumRay.y * d - f,
+                                 frustumRay.y * d - g,
                                  temp * c - frustumRay.x * e));
 
     // raymarch outputs

@@ -433,7 +433,7 @@ static void on_render()
     glUniform1f(glGetUniformLocation(shader, "c"), cosYaw);
     glUniform1f(glGetUniformLocation(shader, "d"), cosPitch);
     glUniform1f(glGetUniformLocation(shader, "e"), sinYaw);
-    glUniform1f(glGetUniformLocation(shader, "f"), sinPitch);
+    glUniform1f(glGetUniformLocation(shader, "g"), sinPitch);
     glUniform2f(glGetUniformLocation(shader, "r"), frustumDivX, frustumDivY);
     glUniform3f(glGetUniformLocation(shader, "P"), playerPosX, playerPosY, playerPosZ);
 
