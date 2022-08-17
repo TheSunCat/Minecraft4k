@@ -40,12 +40,12 @@ static uint64_t RANDOM_next(Random* rand, const int bits)
     return *rand >> (48 - bits);
 }
 
-uint32_t nextInt(Random* rand)
+static uint32_t nextInt(Random* rand)
 {
     return RANDOM_next(rand, 32);
 }
 
-uint32_t nextIntBound(Random* rand, int32_t bound)
+static uint32_t nextIntBound(Random* rand, int32_t bound)
 {
     uint32_t r = RANDOM_next(rand, 31);
     const uint32_t m = bound - 1;
@@ -87,7 +87,7 @@ static float my_cos(float x)
     return my_sin(x + M_PI / 2.0f);
 }
 
-float clamp(float x, float min, float max)
+static float clamp(float x, float min, float max)
 {
     if(x < min)
         return min;
@@ -96,7 +96,7 @@ float clamp(float x, float min, float max)
     return x;
 }
 
-uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
+static uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
 
 static void setBlock(int x, int y, int z, uint8_t block)
 {
