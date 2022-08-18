@@ -646,32 +646,6 @@ static void on_realize()
 
     glUseProgram(shader);
 
-    // initBuffers
-    GLfloat vertices[] = {
-        -1.f, -1.f,
-        0.f, 1.f,
-        -1.f, 1.f,
-        0.f, 0.f,
-        1.f, -1.f,
-        1.f, 1.f,
-        -1.f, 1.f,
-        0.f, 0.f,
-        1.f, -1.f,
-        1.f, 1.f,
-        1.f, 1.f,
-        1.f, 0.f
-    };
-
-    GLuint vao, buffer;
-
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    glGenBuffers(1, &buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
     // Game init
     generateWorld();
     
@@ -682,7 +656,6 @@ void _start() {
     asm volatile("sub $8, %rsp\n");
 
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
-    //SDL_SetHint("SDL_HINT_MOUSE_RELATIVE_MODE_WARP", "1");
     window = SDL_CreateWindow(
         "",
         0,
@@ -693,11 +666,7 @@ void _start() {
     );
 
     SDL_GL_CreateContext(window);
-    //SDL_ShowCursor(SDL_TRUE);
     SDL_SetRelativeMouseMode(SDL_TRUE);
-    //SDL_CaptureMouse(SDL_TRUE); 
-    //SDL_SetWindowGrab(window, SDL_TRUE);
-    //SDL_SetWindowMouseGrab(window, SDL_TRUE);
 
     on_realize();
 
@@ -709,6 +678,7 @@ void _start() {
                 || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)
 #endif
             ) {
+                // TODO why not return;
                 asm volatile(".intel_syntax noprefix");
                 asm volatile("push 231"); //exit_group
                 asm volatile("pop rax");

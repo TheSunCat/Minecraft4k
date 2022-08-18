@@ -106,24 +106,9 @@ void main()
 
         // Determine the closest voxel boundary
         if (dist.y < dist.x)
-        {
-            if (dist.y < dist.z)
-            {
-                axis = 1; // Y
-            }
-            else
-            {
-                axis = 2; // Z
-            }
-        }
-        else if (dist.x < dist.z)
-        {
-            axis = 0; // X
-        }
+            axis = 1 + int(dist.y > dist.z);
         else
-        {
-            axis = 2; // Z
-        }
+            axis = 2 * int(dist.x > dist.z);
 
         // Advance to the closest voxel boundary in the axis direction
 
