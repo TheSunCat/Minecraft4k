@@ -26,6 +26,8 @@ static uint64_t currentTime()
     return SDL_GetTicks64();
 }
 
+const int X = 0, Y = 1, Z = 2;
+
 // It's just the Java Random class
 const uint64_t RANDOM_multiplier = 0x5DEECE66D;
 const uint64_t RANDOM_addend = 0xBL;
@@ -229,7 +231,6 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
     distX += iStep == 1; distY += jStep == 1; distZ += kStep == 1;
     distX *= vInvertedX; distY *= vInvertedY; distZ *= vInvertedZ;
 
-    const int X = 0, Y = 1, Z = 2;
     int axis = X;
 
     float rayTravelDist = 0;
@@ -331,14 +332,11 @@ static void on_render()
 
     lastFrameTime = frameTime;
 
-    float sinYaw = my_sin(cameraYaw);
-    float cosYaw = my_cos(cameraYaw);
-    float sinPitch = my_sin(cameraPitch);
-    float cosPitch = my_cos(cameraPitch);
+    const float sinYaw = my_sin(cameraYaw);
+    const float cosYaw = my_cos(cameraYaw);
+    const float sinPitch = my_sin(cameraPitch);
+    const float cosPitch = my_cos(cameraPitch);
  
-    float frustumDivX = (SCR_WIDTH * FOV) / 214.f;
-    float frustumDivY = (SCR_HEIGHT * FOV) / 120.f;
-
     // update position for destroying blocks
     raycastWorld(sinYaw, cosYaw, sinPitch, cosPitch);
 
@@ -366,9 +364,9 @@ static void on_render()
         for (int axis = 0; axis < 3; axis++) {
             bool moveValid = true;
 
-            const float newPlayerPosX = playerPosX + playerVelocityX * (axis == 0);
-            const float newPlayerPosY = playerPosY + playerVelocityY * (axis == 1);
-            const float newPlayerPosZ = playerPosZ + playerVelocityZ * (axis == 2);
+            const float newPlayerPosX = playerPosX + playerVelocityX * (axis == X);
+            const float newPlayerPosY = playerPosY + playerVelocityY * (axis == Y);
+            const float newPlayerPosZ = playerPosZ + playerVelocityZ * (axis == Z);
 
             for (int colliderIndex = 0; colliderIndex < 12; colliderIndex++) {
                 // magic
@@ -436,7 +434,7 @@ static void on_render()
     glUniform1f(glGetUniformLocation(shader, "d"), cosPitch);
     glUniform1f(glGetUniformLocation(shader, "e"), sinYaw);
     glUniform1f(glGetUniformLocation(shader, "g"), sinPitch);
-    glUniform2f(glGetUniformLocation(shader, "r"), frustumDivX, frustumDivY);
+    glUniform2f(glGetUniformLocation(shader, "r"), (SCR_WIDTH * FOV) / 214.f, (SCR_HEIGHT * FOV) / 120.f);
     glUniform3f(glGetUniformLocation(shader, "P"), playerPosX, playerPosY, playerPosZ);
 
     glUniform3i(glGetUniformLocation(shader, "b"), hoverBlockX, hoverBlockY, hoverBlockZ);
@@ -654,22 +652,6 @@ static void on_realize()
     generateTextures();
 }
 
-static int resizingEventWatcher(void* data, SDL_Event* event)
-{
-    if (event->type == SDL_WINDOWEVENT && event->window.event == SDL_WINDOWEVENT_RESIZED)
-    {
-        SDL_Window* win = SDL_GetWindowFromID(event->window.windowID);
-        if (win == (SDL_Window*)data)
-        {
-            glViewport(0, 0, event->window.data1, event->window.data2);
-            SCR_WIDTH = event->window.data1;
-            SCR_HEIGHT = event->window.data2;
-        }
-    }
-    
-    return 0; 
-}
-
 void _start() {
     asm volatile("sub $8, %rsp\n");
 
@@ -677,15 +659,9 @@ void _start() {
     window = SDL_CreateWindow("", 0, 0,
         SCR_WIDTH,
         SCR_HEIGHT,
-        SDL_WINDOW_OPENGL// | SDL_WINDOW_INPUT_GRABBED//| SDL_WINDOW_FULLSCREEN
+        SDL_WINDOW_OPENGL// TODO freezes why??? | SDL_WINDOW_RESIZABLE//| SDL_WINDOW_FULLSCREEN
     );
 
-    // TODO could skip listening for resize events with this
-    //SDL_RenderSetLogicalSize(renderer, SCR_WIDTH + 10, SCR_HEIGHT + 10);
-    //SDL_RenderSetIntegerScale(renderer, SDL_TRUE);
-
-    SDL_AddEventWatch(resizingEventWatcher, window);
-    
     SDL_GL_CreateContext(window);
     SDL_SetRelativeMouseMode(SDL_TRUE);
 
@@ -707,6 +683,12 @@ void _start() {
                 asm volatile("syscall");
                 asm volatile(".att_syntax prefix");
                 __builtin_unreachable();
+            } else if(event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED)
+            {
+                SCR_WIDTH = event.window.data1;
+                SCR_HEIGHT = event.window.data2;
+
+                glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
             }
         }
 
