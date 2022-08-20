@@ -143,6 +143,8 @@ static void placeBlock(uint8_t block)
 }
 
 SDL_Window* window;
+int SCR_WIDTH = SCR_WIDTH_DEFAULT * (float) (1 << SCR_DETAIL);
+int SCR_HEIGHT = SCR_HEIGHT_DEFAULT * (float) (1 << SCR_DETAIL);
 
 float cameraPitch = 0;
 float cameraYaw = 0;
@@ -429,7 +431,7 @@ static void on_render()
     glUniform1i(glGetUniformLocation(shader, "T"), 1);
 
     glUniform2f(glGetUniformLocation(shader, "S"), SCR_WIDTH, SCR_HEIGHT);
-
+    
     glUniform1f(glGetUniformLocation(shader, "c"), cosYaw);
     glUniform1f(glGetUniformLocation(shader, "d"), cosPitch);
     glUniform1f(glGetUniformLocation(shader, "e"), sinYaw);
@@ -652,19 +654,38 @@ static void on_realize()
     generateTextures();
 }
 
+static int resizingEventWatcher(void* data, SDL_Event* event)
+{
+    if (event->type == SDL_WINDOWEVENT && event->window.event == SDL_WINDOWEVENT_RESIZED)
+    {
+        SDL_Window* win = SDL_GetWindowFromID(event->window.windowID);
+        if (win == (SDL_Window*)data)
+        {
+            glViewport(0, 0, event->window.data1, event->window.data2);
+            SCR_WIDTH = event->window.data1;
+            SCR_HEIGHT = event->window.data2;
+        }
+    }
+    
+    return 0; 
+}
+
 void _start() {
     asm volatile("sub $8, %rsp\n");
 
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
-    window = SDL_CreateWindow(
-        "",
-        0,
-        0,
+    window = SDL_CreateWindow("", 0, 0,
         SCR_WIDTH,
         SCR_HEIGHT,
         SDL_WINDOW_OPENGL// | SDL_WINDOW_INPUT_GRABBED//| SDL_WINDOW_FULLSCREEN
     );
 
+    // TODO could skip listening for resize events with this
+    //SDL_RenderSetLogicalSize(renderer, SCR_WIDTH + 10, SCR_HEIGHT + 10);
+    //SDL_RenderSetIntegerScale(renderer, SDL_TRUE);
+
+    SDL_AddEventWatch(resizingEventWatcher, window);
+    
     SDL_GL_CreateContext(window);
     SDL_SetRelativeMouseMode(SDL_TRUE);
 

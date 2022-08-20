@@ -24,6 +24,3 @@
 
 #define PLAYER_REACH 5.0f
 #define FOV 90.0f
-
-#define SCR_WIDTH (SCR_WIDTH_DEFAULT * (float) (1 << SCR_DETAIL))
-#define SCR_HEIGHT (SCR_HEIGHT_DEFAULT * (float) (1 << SCR_DETAIL))
