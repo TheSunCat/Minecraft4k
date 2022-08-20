@@ -60,7 +60,7 @@ void main()
 
     while (rayTravelDist <= 20.0) // TODO replace RENDER_DIST
     {
-        // Exit check
+        // TODO exit check for performance
         //if(!inWorld(ijk))
         //    break;
 
@@ -93,9 +93,10 @@ void main()
             // multiply by 9 to make sure it's white
             textureColor += int(ijk == b && any(greaterThan(abs(fract(texFetch) - 0.5), vec2(.4375)))) * 9;
 
-            if (dot(textureColor, textureColor) != 0) { // pixel is not transparent
+            if (dot(textureColor, textureColor) > 0) { // pixel is not transparent
                 
-                float fogIntensity = (rayTravelDist / 20.0) * (0xFF - (axis + 2) % 3 * 5) / 0xFF;
+                // TODO replace RENDER_DIST
+                float fogIntensity = (rayTravelDist / 20.0);// * (1 - ((axis + 2) % 3 * 5 / 0xFF));
                 Z = vec4(mix(textureColor, vec3(0), fogIntensity), 1);
                 return;
             }
