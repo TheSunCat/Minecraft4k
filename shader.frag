@@ -17,17 +17,16 @@ uniform ivec3 b;
 // fragColor
 out vec4 Z;
 
-/*bool inWorld(ivec3 pos)
-{
-    vec3 lessThanWorld = step(vec3(0, -2, 0), pos);
-    vec3 greaterThanWorld = step(WD, pos);
-
-    return dot(lessThanWorld, lessThanWorld) * dot(greaterThanWorld, greaterThanWorld) == 0;
-}*/
-
 void main()
 {
-    vec2 frustumRay = (vec2(gl_FragCoord.x, S.y - gl_FragCoord.y) - (0.5 * S)) / (r);
+    vec2 centerDist = vec2(gl_FragCoord.x, S.y - gl_FragCoord.y) - (0.5 * S);
+    
+    vec2 frustumRay = centerDist / r;
+    
+    if(any(lessThan(abs(centerDist), vec2(3))) && all(lessThan(abs(centerDist), vec2(10)))) {
+        Z = vec4(1);
+        return;
+    }
 
     // rotate frustum space to world space
     float temp = d + frustumRay.y * g;
@@ -53,9 +52,7 @@ void main()
     vec3 vInverted = abs(1 / rayDir);
 
     // The distance to the closest voxel boundary in units of rayTravelDist
-    vec3 dist = -fract(P) * ijkStep;
-    dist += max(ijkStep, vec3(0));
-    dist *= vInverted;
+    vec3 dist = (-fract(P) * ijkStep + max(ijkStep, vec3(0))) * vInverted;
 
     int axis = 0; // X
 
