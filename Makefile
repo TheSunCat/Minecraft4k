@@ -5,12 +5,6 @@ CFLAGS = -Os -fno-plt -fno-stack-protector -fno-stack-check -fno-unwind-tables -
   -fno-pic -fno-PIE -fno-PIC -march=nocona -ffunction-sections -fdata-sections -fno-plt \
   -fmerge-all-constants -mno-fancy-math-387 -mno-ieee-fp -std=gnu11 -nostartfiles
 
-#CFLAGS := -s -fno-plt -Os -std=gnu11 -nostartfiles -Wall -Wextra 
-#CFLAGS += -fno-stack-protector -fno-stack-check -fno-unwind-tables -fno-asynchronous-unwind-tables -fomit-frame-pointer
-#CFLAGS += -no-pie -fno-pic -fno-PIE -fno-PIC -march=core2 -ffunction-sections -fdata-sections
-#CFLAGS += -fsingle-precision-constant -ffast-math 
-#CFLAGS += -Wl,--gc-sections
-
 ifeq ($(DEBUG),false)
 	CFLAGS += -nostdlib
 else
@@ -18,7 +12,7 @@ else
 	LDFLAGS += -g
 endif
 
-CFLAGS += -Wl,--gc-sections,--no-keep-memory,--no-export-dynamic,--orphan-handling=discard,-z,noseparate-code,-z,stack-size=0
+CFLAGS += -Wl,--gc-sections,--no-keep-memory,--no-export-dynamic,--orphan-handling=discard,-z,noseparate-code,-z,stack-size=0,--hash-style=gnu
 #TODO ,-z,max-page-size=256,--no-dynamic-linker,-nostdlib
 
 .PHONY: clean checkgccversion noelfver
@@ -45,7 +39,8 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 	cp $< $@
 	objcopy --remove-section .note.gnu.property --remove-section .gnu.version --remove-section .fini --remove-section .init_array --remove-section .got --remove-section .discard $@
 	strip $@
-	strip -R .note -R .comment -R .eh_frame -R .eh_frame_hdr -R .note.gnu.build-id -R .got -R .got.plt -R .gnu.version -R .shstrtab -R .gnu.version_r -R .gnu.hash -R .note.gnu.property $@
+	# TODO this is commented because it crashes on some machines :/
+	#strip -R .note -R .comment -R .eh_frame -R .eh_frame_hdr -R .note.gnu.build-id -R .got -R .got.plt -R .gnu.version -R .shstrtab -R .gnu.version_r -R .gnu.hash -R .note.gnu.property $@
 	./Section-Header-Stripper/section-stripper.py $@
 	sstrip $@
 	./noelfver/noelfver $@ > $@.nover
@@ -68,7 +63,7 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 	cat ./vondehi/vondehi $< > $@
 	chmod +x $@
 	wc -c $@
-	cp Minecraft4k_opt.elf sMinecraft4k.elf
+	cp Minecraft4k_opt.elf Minecraft4k_prepacked.elf
 
 clean :
 	-rm *.elf shader.h Minecraft4k
