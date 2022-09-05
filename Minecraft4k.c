@@ -17,21 +17,21 @@
 #include "Constants.h"
 
 // OpenGL IDs
-GLuint shader;
-GLuint worldTex;
-GLuint textureAtlasTex;
+static GLuint shader;
+static GLuint worldTex;
+static GLuint textureAtlasTex;
 
 static uint64_t currentTime()
 {
     return SDL_GetTicks64();
 }
 
-const int X = 0, Y = 1, Z = 2;
+static const int X = 0, Y = 1, Z = 2;
 
 // It's just the Java Random class
-const uint64_t RANDOM_multiplier = 0x5DEECE66D;
-const uint64_t RANDOM_addend = 0xBL;
-const uint64_t RANDOM_mask = (((uint64_t)1) << 48) - 1;
+static const uint64_t RANDOM_multiplier = 0x5DEECE66D;
+static const uint64_t RANDOM_addend = 0xBL;
+static const uint64_t RANDOM_mask = (((uint64_t)1) << 48) - 1;
 
 typedef uint64_t Random;
 
@@ -125,8 +125,8 @@ static int isWithinWorld(int x, int y, int z)
            x < WORLD_SIZE && y < WORLD_HEIGHT && z < WORLD_SIZE;
 }
 
-int hoverBlockX = -1, hoverBlockY = -1, hoverBlockZ = -1;
-int placeBlockX = -1, placeBlockY = -1, placeBlockZ = -1;
+static int hoverBlockX = -1, hoverBlockY = -1, hoverBlockZ = -1;
+static int placeBlockX = -1, placeBlockY = -1, placeBlockZ = -1;
 
 static void breakBlock()
 {
@@ -144,19 +144,19 @@ static void placeBlock(uint8_t block)
     setBlock(placeBlockX, placeBlockY, placeBlockZ, block);
 }
 
-SDL_Window* window;
-int SCR_WIDTH = SCR_WIDTH_DEFAULT * (float) (1 << SCR_DETAIL);
-int SCR_HEIGHT = SCR_HEIGHT_DEFAULT * (float) (1 << SCR_DETAIL);
+static SDL_Window* window;
+static int SCR_WIDTH = SCR_WIDTH_DEFAULT * (float) (1 << SCR_DETAIL);
+static int SCR_HEIGHT = SCR_HEIGHT_DEFAULT * (float) (1 << SCR_DETAIL);
 
-float cameraPitch = 0;
-float cameraYaw = 0;
+static float cameraPitch = 0;
+static float cameraYaw = 0;
 
-float playerVelocityX = 0, playerVelocityY = 0, playerVelocityZ = 0;
+static float playerVelocityX = 0, playerVelocityY = 0, playerVelocityZ = 0;
 
 // spawn player at world center
-float playerPosX = WORLD_SIZE / 2.0f + 0.5f, playerPosY = 1, playerPosZ = WORLD_SIZE / 2.0f + 0.5f;
+static float playerPosX = WORLD_SIZE / 2.0f + 0.5f, playerPosY = 1, playerPosZ = WORLD_SIZE / 2.0f + 0.5f;
 
-uint32_t lastMouseState = 0;
+static uint32_t lastMouseState = 0;
 static void updateMouse()
 {
     int x, y;
@@ -193,12 +193,12 @@ static void updateMouse()
 // BAD STARTS HERE
 // ---------------
 
-float my_fract(float x)
+static float my_fract(float x)
 {
     return x - (float)((int) x);
 }
 
-int my_sign(float x)
+static int my_sign(float x)
 {
     if(x < 0)
         return -1;
@@ -312,15 +312,15 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
 // BAD ENDS HERE
 // -------------
 
-const uint8_t* kb = NULL;
+static const uint8_t* kb = NULL;
 
 static void updateController()
 {
     kb = SDL_GetKeyboardState(NULL);
 }
 
-uint64_t lastFrameTime = 0;
-uint64_t lastUpdateTime;
+static uint64_t lastFrameTime = 0;
+static uint64_t lastUpdateTime;
 
 static void on_render()
 {
@@ -342,10 +342,6 @@ static void on_render()
 
     updateMouse();
     updateController();
-
-    //if (needsResUpdate) {
-    //    updateScreenResolution();
-    //}
    
     while (currentTime() - lastUpdateTime > 10)
     {
@@ -420,9 +416,9 @@ static void on_render()
     }
 
     // Compute the raytracing!
-    glActiveTexture(GL_TEXTURE0);
+    //glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_3D, worldTex);
-    glUniform1i(glGetUniformLocation(shader, "W"), 0);
+    //glUniform1i(glGetUniformLocation(shader, "W"), 0);
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
@@ -457,7 +453,7 @@ static void generateWorld()
                 int randInt = nextIntBound(&rand, 8);
 
                 if (y > (maxTerrainHeight + randInt))
-                    block = nextIntBound(&rand, 8) + 1;
+                    block = nextIntBound(&rand, 7) + 1;
                 else
                     block = BLOCK_AIR;
 
@@ -486,6 +482,8 @@ static void generateWorld()
         world);                                 // pixels
 }
 
+static int textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 6];
+
 static void generateTextures()
 {
     long long seed = 151910774187927L;
@@ -493,11 +491,10 @@ static void generateTextures()
     // set random seed to generate textures
     Random rand = makeRandom(seed);
 
-    int textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 16];
 
-    // procedurally generates the 16x3 textureAtlas
+    // procedurally generates the 8x3 textureAtlas
     // gsd = grayscale detail
-    for (int blockID = 1; blockID < 16; blockID++) {
+    for (int blockID = 1; blockID < 6; blockID++) {
         int gsd_tempA = 0xFF - nextIntBound(&rand, 0x60);
 
         for (int y = 0; y < TEXTURE_RES * 3; y++) {
@@ -587,7 +584,7 @@ static void generateTextures()
                     (tint & 0xFF) * gsd_constexpr / 0xFF << 0;
 
                 // write pixel to the texture atlas
-                textureAtlas[x + (TEXTURE_RES * blockID) + y * (TEXTURE_RES * 16)] = col;
+                textureAtlas[x + (TEXTURE_RES * blockID) + y * (TEXTURE_RES * 6)] = col;
             }
         }
     }
@@ -601,7 +598,7 @@ static void generateTextures()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_RES * 16, TEXTURE_RES * 3, 0, GL_BGRA, GL_UNSIGNED_BYTE, textureAtlas);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_RES * 6, TEXTURE_RES * 3, 0, GL_BGRA, GL_UNSIGNED_BYTE, textureAtlas);
 }
 
 static void on_realize()
@@ -655,7 +652,8 @@ static void on_realize()
 void _start() {
     asm volatile("sub $8, %rsp\n");
 
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+    // technically not needed
+    //SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
     window = SDL_CreateWindow("", 0, 0,
         SCR_WIDTH,
         SCR_HEIGHT,

@@ -17,10 +17,10 @@
 #define BLOCK_AIR 0
 #define BLOCK_GRASS 1
 #define BLOCK_DIRT 2
-#define BLOCK_STONE 4
-#define BLOCK_BRICKS 5
-#define BLOCK_WOOD 7
-#define BLOCK_LEAVES 8
+#define BLOCK_STONE 3
+#define BLOCK_BRICKS 4
+#define BLOCK_WOOD 5
+#define BLOCK_LEAVES 6
 
 #define PLAYER_REACH 5.0f
 #define FOV 90.0f
