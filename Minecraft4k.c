@@ -357,14 +357,14 @@ static void on_render()
         playerVelocityY += 0.003F; // gravity
 
         // calculate collision
-        for (int axis = 0; axis < 3; axis++) {
+        for (int axis = 0; axis < 3; ++axis) {
             bool moveValid = true;
 
             const float newPlayerPosX = playerPosX + playerVelocityX * (axis == X);
             const float newPlayerPosY = playerPosY + playerVelocityY * (axis == Y);
             const float newPlayerPosZ = playerPosZ + playerVelocityZ * (axis == Z);
 
-            for (int colliderIndex = 0; colliderIndex < 12; colliderIndex++) {
+            for (int colliderIndex = 0; colliderIndex < 12; ++colliderIndex) {
                 // magic
                 const int colliderBlockPosX = newPlayerPosX + (colliderIndex   % 2) * 0.6f - 0.3f;
                 const int colliderBlockPosY = newPlayerPosY + (colliderIndex/4 - 1) * 0.8f + 0.65f;
@@ -402,7 +402,7 @@ static void on_render()
             }
         }
 
-        for (int colliderIndex = 0; colliderIndex < 12; colliderIndex++) {
+        for (int colliderIndex = 0; colliderIndex < 12; ++colliderIndex) {
             int magicX = (int) (playerPosX +        ( colliderIndex       & 1) * 0.6F - 0.3F);
             int magicY = (int) (playerPosY + (float)((colliderIndex >> 2) - 1) * 0.8F + 0.65F);
             int magicZ = (int) (playerPosZ +        ( colliderIndex >> 1  & 1) * 0.6F - 0.3F);
@@ -445,9 +445,9 @@ static void generateWorld()
     long long seed = 18295169L;
     Random rand = makeRandom(seed);
 
-    for (int x = 0; x < WORLD_SIZE; x++) {
-        for (int y = 0; y < WORLD_HEIGHT; y++) {
-            for (int z = 0; z < WORLD_SIZE; z++) {
+    for (int x = 0; x < WORLD_SIZE; ++x) {
+        for (int y = 0; y < WORLD_HEIGHT; ++y) {
+            for (int z = 0; z < WORLD_SIZE; ++z) {
                 uint8_t block;
 
                 int randInt = nextIntBound(&rand, 8);
@@ -494,11 +494,11 @@ static void generateTextures()
 
     // procedurally generates the 8x3 textureAtlas
     // gsd = grayscale detail
-    for (int blockID = 1; blockID < 6; blockID++) {
+    for (int blockID = 1; blockID < 6; ++blockID) {
         int gsd_tempA = 0xFF - nextIntBound(&rand, 0x60);
 
-        for (int y = 0; y < TEXTURE_RES * 3; y++) {
-            for (int x = 0; x < TEXTURE_RES; x++) {
+        for (int y = 0; y < TEXTURE_RES * 3; ++y) {
+            for (int x = 0; x < TEXTURE_RES; ++x) {
                 // gets executed per pixel/texel
 
                 if (blockID != BLOCK_STONE || nextIntBound(&rand, 3) == 0) // if the block type is stone, update the noise value less often to get a stretched out look
