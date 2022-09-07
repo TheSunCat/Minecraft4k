@@ -87,7 +87,7 @@ void main()
             texFetch.x += blockHit;
 
             // TODO replace TEXTURE_RES
-            vec3 textureColor = texture(T, (trunc(texFetch * 16) + 0.5) / (16 * vec2(6, 3))).xyz;
+            vec3 textureColor = texture(T, (trunc(texFetch * 16) + 0.5) / (16 * vec2(7, 3))).xyz;
 
             // highlight hovered block
             // multiply by 9 to make sure it's white

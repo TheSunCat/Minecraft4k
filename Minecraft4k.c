@@ -452,8 +452,9 @@ static void generateWorld()
 
                 int randInt = nextIntBound(&rand, 8);
 
+                // TODO make dirt more common
                 if (y > (maxTerrainHeight + randInt))
-                    block = nextIntBound(&rand, 7) + 1;
+                    block = nextIntBound(&rand, 5) + 1;
                 else
                     block = BLOCK_AIR;
 
@@ -482,7 +483,7 @@ static void generateWorld()
         world);                                 // pixels
 }
 
-static int textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 6];
+static int textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 7];
 
 static void generateTextures()
 {
@@ -494,7 +495,7 @@ static void generateTextures()
 
     // procedurally generates the 8x3 textureAtlas
     // gsd = grayscale detail
-    for (int blockID = 1; blockID < 6; ++blockID) {
+    for (int blockID = 1; blockID < 7; ++blockID) {
         int gsd_tempA = 0xFF - nextIntBound(&rand, 0x60);
 
         for (int y = 0; y < TEXTURE_RES * 3; ++y) {
@@ -584,7 +585,7 @@ static void generateTextures()
                     (tint & 0xFF) * gsd_constexpr / 0xFF << 0;
 
                 // write pixel to the texture atlas
-                textureAtlas[x + (TEXTURE_RES * blockID) + y * (TEXTURE_RES * 6)] = col;
+                textureAtlas[x + (TEXTURE_RES * blockID) + y * (TEXTURE_RES * 7)] = col;
             }
         }
     }
@@ -598,7 +599,7 @@ static void generateTextures()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_RES * 6, TEXTURE_RES * 3, 0, GL_BGRA, GL_UNSIGNED_BYTE, textureAtlas);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_RES * 7, TEXTURE_RES * 3, 0, GL_BGRA, GL_UNSIGNED_BYTE, textureAtlas);
 }
 
 static void on_realize()
