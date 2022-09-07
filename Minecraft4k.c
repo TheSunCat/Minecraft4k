@@ -28,60 +28,19 @@ static uint64_t currentTime()
 
 static const int X = 0, Y = 1, Z = 2;
 
-// It's just the Java Random class
-static const uint64_t RANDOM_multiplier = 0x5DEECE66D;
-static const uint64_t RANDOM_addend = 0xBL;
-static const uint64_t RANDOM_mask = (((uint64_t)1) << 48) - 1;
-
-typedef uint64_t Random;
-
-static uint64_t RANDOM_next(Random* rand, const int bits)
-{
-    *rand = (*rand * RANDOM_multiplier + RANDOM_addend) & RANDOM_mask;
-
-    return *rand >> (48 - bits);
-}
-
-static uint32_t nextInt(Random* rand)
-{
-    return RANDOM_next(rand, 32);
-}
-
-static uint32_t nextIntBound(Random* rand, int32_t bound)
-{
-    uint32_t r = RANDOM_next(rand, 31);
-    const uint32_t m = bound - 1;
-
-    // TODO why does this exist??
-    //if ((bound & m) == 0)  // i.e., bound is a power of 2
-    //    r = (uint32_t)(bound * (((uint64_t)r) >> 31));
-    //else {
-        for(uint32_t u = r;
-            u - (r = u % bound) + m < 0;
-            u = RANDOM_next(rand, 31));
-    //}
-
-    return r;
-}
-
-static Random makeRandom(uint64_t seed)
-{
-    return (seed ^ RANDOM_multiplier) & RANDOM_mask;
-}
-
 // TODO tune this
 #define TRIG_PRECISION 20
 static float my_sin(float x)
 {
-    double t = x;
-    double sine = t;
+    float t = x;
+    float sine = x;
     for (int a=1; a < TRIG_PRECISION; ++a)
     {
-        double mult = -x*x/((2*a+1)*(2*a));
+        float mult = -x*x/((2*a+1)*(2*a));
         t *= mult;
         sine += t;
     }
-    return (float)sine;
+    return sine;
 }
 
 static float my_cos(float x)
@@ -442,19 +401,18 @@ static void generateWorld()
 {
     float maxTerrainHeight = WORLD_HEIGHT / 2.0f;
 
-    long long seed = 18295169L;
-    Random rand = makeRandom(seed);
+    //long long seed = 18295169L;
 
     for (int x = 0; x < WORLD_SIZE; ++x) {
         for (int y = 0; y < WORLD_HEIGHT; ++y) {
             for (int z = 0; z < WORLD_SIZE; ++z) {
                 uint8_t block;
 
-                int randInt = nextIntBound(&rand, 8);
+                int randInt = rand() % 8;
 
                 // TODO make dirt more common
                 if (y > (maxTerrainHeight + randInt))
-                    block = nextIntBound(&rand, 5) + 1;
+                    block = (rand() % 5) + 1;
                 else
                     block = BLOCK_AIR;
 
@@ -487,23 +445,21 @@ static int textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 7];
 
 static void generateTextures()
 {
-    long long seed = 151910774187927L;
-
     // set random seed to generate textures
-    Random rand = makeRandom(seed);
+    //long long seed = 151910774187927L;
 
 
     // procedurally generates the 8x3 textureAtlas
     // gsd = grayscale detail
     for (int blockID = 1; blockID < 7; ++blockID) {
-        int gsd_tempA = 0xFF - nextIntBound(&rand, 0x60);
+        int gsd_tempA = 0xFF - (rand() % 0x60);
 
         for (int y = 0; y < TEXTURE_RES * 3; ++y) {
             for (int x = 0; x < TEXTURE_RES; ++x) {
                 // gets executed per pixel/texel
 
-                if (blockID != BLOCK_STONE || nextIntBound(&rand, 3) == 0) // if the block type is stone, update the noise value less often to get a stretched out look
-                    gsd_tempA = 0xFF - nextIntBound(&rand, 0x60);
+                if (blockID != BLOCK_STONE || (rand() % 3) == 0) // if the block type is stone, update the noise value less often to get a stretched out look
+                    gsd_tempA = 0xFF - (rand() % 0x60);
 
                 int tint = 0x966C4A; // brown (dirt)
                 switch (blockID)
@@ -548,9 +504,9 @@ static void generateTextures()
                         if (dy > dx)
                             dx = dy;
 
-                        gsd_tempA = 196 - nextIntBound(&rand, 32) + dx % 3 * 32;
+                        gsd_tempA = 196 - (rand() % 32) + dx % 3 * 32;
                     }
-                    else if (nextIntBound(&rand, 2) == 0) {
+                    else if ((rand() % 2) == 0) {
                         // make the gsd 50% brighter on random pixels of the bark
                         // and 50% darker if x happens to be odd
                         gsd_tempA = gsd_tempA * (150 - (x & 1) * 100) / 100;
@@ -572,7 +528,7 @@ static void generateTextures()
 
                 if (blockID == BLOCK_LEAVES) {
                     tint = 0x50D937; // green
-                    if (nextIntBound(&rand, 2) == 0) {
+                    if ((rand() % 2) == 0) {
                         tint = 0;
                         gsd_constexpr = 0xFF;
                     }

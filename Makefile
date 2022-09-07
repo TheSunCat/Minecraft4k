@@ -6,7 +6,7 @@ CFLAGS = -Os -fno-plt -fno-stack-protector -fno-stack-check -fno-unwind-tables -
   -fmerge-all-constants -mno-fancy-math-387 -mno-ieee-fp -std=gnu11 -nostartfiles
 
 ifeq ($(DEBUG),false)
-	CFLAGS += -nostdlib
+	#CFLAGS += -nostdlib # needed for rand()
 else
 	CFLAGS += -DDEBUG=true -g
 	LDFLAGS += -g
