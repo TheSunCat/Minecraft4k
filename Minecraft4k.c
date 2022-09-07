@@ -264,7 +264,8 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
         }
     }
 
-    hoverBlockX = -1; hoverBlockY = -1; hoverBlockZ = -1;
+    // only X is checked
+    hoverBlockX = -1; placeBlockX = -1;
 }
 
 // -------------
@@ -301,7 +302,8 @@ static void on_render()
 
     updateMouse();
     updateController();
-   
+  
+    // calculate physics
     while (currentTime() - lastUpdateTime > 10)
     {
         const float inputX = (-kb[SDL_SCANCODE_A] + kb[SDL_SCANCODE_D]) * 0.02F;
@@ -377,7 +379,7 @@ static void on_render()
     // Compute the raytracing!
     //glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_3D, worldTex);
-    //glUniform1i(glGetUniformLocation(shader, "W"), 0);
+    //glUniform1i(glGetUniformLocation(shader, "W"), 0); // textures are set to 0 by default... this is cursed
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
