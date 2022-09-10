@@ -61,12 +61,12 @@ static uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
 
 static void setBlock(int x, int y, int z, uint8_t block)
 {
-    world[x + y * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT] = block;
+    world[y + x * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT] = block;
 
     glBindTexture(GL_TEXTURE_3D, worldTex);
     glTexSubImage3D(GL_TEXTURE_3D,              // target
         0,                                      // level
-        x, y, z,                                // offset
+        y, x, z,                                // offset
         1, 1, 1,                                // size
         GL_RED,                                 // format
         GL_UNSIGNED_BYTE,                       // type
@@ -75,7 +75,7 @@ static void setBlock(int x, int y, int z, uint8_t block)
 
 static uint8_t getBlock(int x, int y, int z)
 {
-    return world[x + y * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT];
+    return world[y + x * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT];
 }
 
 static int isWithinWorld(int x, int y, int z)
@@ -401,26 +401,24 @@ static void on_render()
 
 static void generateWorld()
 {
-    float maxTerrainHeight = WORLD_HEIGHT / 2.0f;
+    const float maxTerrainHeight = WORLD_HEIGHT / 2.0f;
 
     //long long seed = 18295169L;
 
-    for (int x = 0; x < WORLD_SIZE; ++x) {
-        for (int y = 0; y < WORLD_HEIGHT; ++y) {
-            for (int z = 0; z < WORLD_SIZE; ++z) {
-                uint8_t block;
+    for (int i = 0; i < WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE; ++i) {
+        uint8_t block;
 
-                int randInt = rand() % 8;
+        int randInt = rand() % 8;
 
-                // TODO make dirt more common
-                if (y > (maxTerrainHeight + randInt))
-                    block = (rand() % 5) + 1;
-                else
-                    block = BLOCK_AIR;
+        int y = i % (WORLD_SIZE);
 
-                setBlock(x, y, z, block);
-            }
-        }
+        // TODO make dirt more common
+        if (y > (maxTerrainHeight + randInt))
+            block = (rand() % 5) + 1;
+        else
+            block = BLOCK_AIR;
+
+        world[i] = block;
     }
     
     // Upload world to GPU

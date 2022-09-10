@@ -66,7 +66,7 @@ void main()
 
         // get block from world
         // TODO replace WORLD_DIMENSIONS
-        int blockHit = int(texture(W, ijk / 64.0).x * 36 * 9); // TODO is this correct? seems random
+        int blockHit = int(texture(W, ijk.yxz / 64.0).x * 36 * 9); // TODO is this correct? seems random
 
         if (blockHit != 0) // BLOCK_AIR
         {
