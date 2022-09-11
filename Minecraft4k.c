@@ -28,6 +28,7 @@ static uint64_t currentTime()
 
 static const int X = 0, Y = 1, Z = 2;
 
+// size: 17
 // TODO tune this, or use inline x86 ASM
 #define TRIG_PRECISION 20
 static float my_sin(float x)
@@ -61,6 +62,7 @@ static float clamp(float x, float min, float max)
 
 static uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
 
+// size: 134!!
 static void setBlock(int x, int y, int z, uint8_t block)
 {
     world[y + x * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT] = block;
@@ -75,11 +77,13 @@ static void setBlock(int x, int y, int z, uint8_t block)
         &block);                                // data
 }
 
+// size: 22
 static uint8_t getBlock(int x, int y, int z)
 {
     return world[y + x * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT];
 }
 
+// size: 23
 static int isWithinWorld(int x, int y, int z)
 {
     return x >= 0.0f && y >= 0.0f && z >= 0.0f &&
@@ -89,6 +93,7 @@ static int isWithinWorld(int x, int y, int z)
 static int hoverBlockX = -100, hoverBlockY = -100, hoverBlockZ = -100;
 static int placeBlockX = -100, placeBlockY = -100, placeBlockZ = -100;
 
+// size: none
 static void breakBlock()
 {
     if(hoverBlockX == -100)
@@ -96,6 +101,8 @@ static void breakBlock()
 
     setBlock(hoverBlockX, hoverBlockY, hoverBlockZ, BLOCK_AIR);
 }
+
+// size: none
 static void placeBlock(uint8_t block)
 {
     if(placeBlockX == -100)
@@ -117,6 +124,7 @@ static float playerVelocityX = 0, playerVelocityY = 0, playerVelocityZ = 0;
 // spawn player at world center
 static float playerPosX = WORLD_SIZE / 2.0f + 0.5f, playerPosY = 1, playerPosZ = WORLD_SIZE / 2.0f + 0.5f;
 
+// size: 231!!
 static uint32_t lastMouseState = 0;
 static void updateMouse()
 {
@@ -154,11 +162,13 @@ static void updateMouse()
 // BAD STARTS HERE
 // ---------------
 
+// size: 4
 static float my_fract(float x)
 {
     return x - (float)((int) x);
 }
 
+// size: 10
 static int my_sign(float x)
 {
     if(x < 0)
@@ -166,6 +176,7 @@ static int my_sign(float x)
     return 1;
 }
 
+// size: 415!!
 static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPitch)
 {
     // rotate frustum space to world space
@@ -276,6 +287,7 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
 
 static const uint8_t* kb = NULL;
 
+// size: 505!!
 static void updateController()
 {
     kb = SDL_GetKeyboardState(NULL);
@@ -284,6 +296,7 @@ static void updateController()
 static uint64_t lastFrameTime = 0;
 static uint64_t lastUpdateTime;
 
+// size: 1611
 static void on_render()
 {
     const uint64_t frameTime = currentTime();
@@ -378,6 +391,8 @@ static void on_render()
         lastUpdateTime += 10;
     }
 
+    // size: 333!!
+    
     // Compute the raytracing!
     //glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_3D, worldTex);
@@ -397,10 +412,12 @@ static void on_render()
     glUniform3f(glGetUniformLocation(shader, "P"), playerPosX, playerPosY, playerPosZ);
 
     glUniform3i(glGetUniformLocation(shader, "b"), hoverBlockX, hoverBlockY, hoverBlockZ);
-    // render!!
+
+    // render!
     glRecti(-1,-1,1,1);
 }
 
+// size: 154
 static void generateWorld()
 {
     const float maxTerrainHeight = WORLD_HEIGHT / 2.0f;
@@ -445,6 +462,7 @@ static void generateWorld()
 
 static int textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 7];
 
+// size: 624!!
 static void generateTextures()
 {
     // set random seed to generate textures
@@ -560,6 +578,7 @@ static void generateTextures()
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_RES * 7, TEXTURE_RES * 3, 0, GL_BGRA, GL_UNSIGNED_BYTE, textureAtlas);
 }
 
+// size: 1471
 static void on_realize()
 {
     glEnable(GL_TEXTURE_3D);
