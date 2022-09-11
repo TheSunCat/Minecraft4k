@@ -23,14 +23,8 @@ void main()
     //vec2 absCenterDist = abs(centerDist);
     
     // draw crosshair
-
-    // three implementations of the same logic. It seems the center one compresses better.
-    //if(any(lessThan(absCenterDist, vec2(3))) && all(lessThan(absCenterDist, vec2(10)))) {
-    if(length(step(abs(centerDist), vec2(2)) + step(abs(centerDist), vec2(10))) > 2) {
-    //if(min(absCenterDist.x, absCenterDist.y) < 3. && max(absCenterDist.x, absCenterDist.y) < 10.) {
-        Z = vec4(1);
-        //return;
-    }
+    if(length(step(abs(centerDist), vec2(2)) + step(abs(centerDist), vec2(10))) > 2) 
+        Z += 1;
 
     vec2 frustumRay = centerDist / r;
 
@@ -80,16 +74,16 @@ void main()
 
         // get block from world
         // TODO replace WORLD_DIMENSIONS
-        texFetch.x += int(texture(W, ijk.yxz / 64.).x * 350); // TODO is this correct? seems random
+        texFetch.x += int(texture(W, ijk.yxz / 64.).x * 350); // TODO this multiplier is wrong. Stone is never drawn?
 
         // TODO replace TEXTURE_RES
         vec4 textureColor = texture(T, (trunc(texFetch * 16) + .5) / (16 * vec2(7, 3)));
 
         // highlight hovered block
         // multiply by 9 to make sure it's white
-        textureColor += int(ijk == b && any(greaterThan(abs(fract(texFetch) - .5), vec2(7/16.)))) * 9;
+        textureColor += int(ijk == b && length(step(vec2(7/16.), abs(fract(texFetch) - .5))) > 0) * 9;
 
-        if (length(textureColor) > 0) { // pixel is not transparent
+        if (length(textureColor) > 0) { // pixel is not transparent, so output color
             
             // TODO replace RENDER_DIST
             Z += mix(textureColor, vec4(0), rayTravelDist / 20);
@@ -112,7 +106,6 @@ void main()
 
         // Set the new distance to the next voxel Y boundary
         dist[axis] += vInverted[axis];
-
     }
 
     //Z = vec4(0);
