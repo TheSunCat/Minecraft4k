@@ -26,6 +26,11 @@ static uint64_t currentTime()
     return SDL_GetTicks64();
 }
 
+int randy()
+{
+    return 1;
+}
+
 static const int X = 0, Y = 1, Z = 2;
 
 // TODO tune this

@@ -19,14 +19,20 @@ out vec4 Z;
 
 void main()
 {
-    vec2 centerDist = vec2(gl_FragCoord.x, S.y - gl_FragCoord.y) - (0.5 * S);
+    vec2 centerDist = vec2(gl_FragCoord.x, S.y - gl_FragCoord.y) - (.5 * S);
+    //vec2 absCenterDist = abs(centerDist);
     
-    vec2 frustumRay = centerDist / r;
-    
-    if(any(lessThan(abs(centerDist), vec2(3))) && all(lessThan(abs(centerDist), vec2(10)))) {
+    // draw crosshair
+
+    // three implementations of the same logic. It seems the center one compresses better.
+    //if(any(lessThan(absCenterDist, vec2(3))) && all(lessThan(absCenterDist, vec2(10)))) {
+    if(length(step(abs(centerDist), vec2(2)) + step(abs(centerDist), vec2(10))) > 2) {
+    //if(min(absCenterDist.x, absCenterDist.y) < 3. && max(absCenterDist.x, absCenterDist.y) < 10.) {
         Z = vec4(1);
-        return;
+        //return;
     }
+
+    vec2 frustumRay = centerDist / r;
 
     // rotate frustum space to world space
     float temp = d + frustumRay.y * g;
@@ -58,7 +64,7 @@ void main()
 
     float rayTravelDist = 0;
 
-    while (rayTravelDist <= 20.0) // TODO replace RENDER_DIST
+    while (rayTravelDist < 20) // TODO replace RENDER_DIST
     {
         // TODO exit check for performance
         //if(!inWorld(ijk))
@@ -66,40 +72,37 @@ void main()
 
         // get block from world
         // TODO replace WORLD_DIMENSIONS
-        int blockHit = int(texture(W, ijk.yxz / 64.0).x * 36 * 9); // TODO is this correct? seems random
+        int blockHit = int(texture(W, ijk.yxz / 64.).x * 350); // TODO is this correct? seems random
 
-        if (blockHit != 0) // BLOCK_AIR
+        vec3 hitPos = P + rayDir * rayTravelDist;
+        
+        // side of block
+        vec2 texFetch = fract(vec2(hitPos.x + hitPos.z, hitPos.y));
+        texFetch.y += 1; // ++ compresses worse for some reason
+
+        if (axis == 1) // Y. we hit the top/bottom of block
         {
-            vec3 hitPos = P + rayDir * rayTravelDist;
+            texFetch = fract(hitPos.xz);
+
+            if (rayDir.y < 0) // looking at the underside of a block
+                texFetch.y += 2;
+        }
+
+        texFetch.x += blockHit;
+
+        // TODO replace TEXTURE_RES
+        vec4 textureColor = texture(T, (trunc(texFetch * 16) + .5) / (16 * vec2(7, 3)));
+
+        // highlight hovered block
+        // multiply by 9 to make sure it's white
+        textureColor += int(ijk == b && any(greaterThan(abs(fract(texFetch) - .5), vec2(7/16.)))) * 9;
+
+        if (length(textureColor) > 0) { // pixel is not transparent
             
-            // side of block
-            vec2 texFetch = fract(vec2(hitPos.x + hitPos.z, hitPos.y));
-            texFetch.y += 1;
-
-            if (axis == 1) // Y. we hit the top/bottom of block
-            {
-                texFetch = fract(hitPos.xz);
-
-                if (rayDir.y < 0.0f) // looking at the underside of a block
-                    texFetch.y += 2;
-            }
-
-            texFetch.x += blockHit;
-
-            // TODO replace TEXTURE_RES
-            vec3 textureColor = texture(T, (trunc(texFetch * 16) + 0.5) / (16 * vec2(7, 3))).xyz;
-
-            // highlight hovered block
-            // multiply by 9 to make sure it's white
-            textureColor += int(ijk == b && any(greaterThan(abs(fract(texFetch) - 0.5), vec2(.4375)))) * 9;
-
-            if (dot(textureColor, textureColor) > 0) { // pixel is not transparent
-                
-                // TODO replace RENDER_DIST
-                float fogIntensity = (rayTravelDist / 20.0);// * (1 - ((axis + 2) % 3 * 5 / 0xFF));
-                Z = vec4(mix(textureColor, vec3(0), fogIntensity), 1);
-                return;
-            }
+            // TODO replace RENDER_DIST
+            float fogIntensity = (rayTravelDist / 20);
+            Z += mix(textureColor, vec4(0), fogIntensity);
+            return;
         }
 
         // Determine the closest voxel boundary
@@ -121,5 +124,5 @@ void main()
 
     }
 
-    Z = vec4(0);
+    //Z = vec4(0);
 }
