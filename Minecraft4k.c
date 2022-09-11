@@ -26,17 +26,14 @@ static uint64_t currentTime()
     return SDL_GetTicks64();
 }
 
-int randy()
-{
-    return 1;
-}
-
 static const int X = 0, Y = 1, Z = 2;
 
-// TODO tune this
+// TODO tune this, or use inline x86 ASM
 #define TRIG_PRECISION 20
 static float my_sin(float x)
 {
+    return sinf(x); // looks like this is slightly smaller for now, welp
+    
     float t = x;
     float sine = x;
     for (int a=1; a < TRIG_PRECISION; ++a)
@@ -89,19 +86,19 @@ static int isWithinWorld(int x, int y, int z)
            x < WORLD_SIZE && y < WORLD_HEIGHT && z < WORLD_SIZE;
 }
 
-static int hoverBlockX = -1, hoverBlockY = -1, hoverBlockZ = -1;
-static int placeBlockX = -1, placeBlockY = -1, placeBlockZ = -1;
+static int hoverBlockX = -100, hoverBlockY = -100, hoverBlockZ = -100;
+static int placeBlockX = -100, placeBlockY = -100, placeBlockZ = -100;
 
 static void breakBlock()
 {
-    if(hoverBlockX == -1)
+    if(hoverBlockX == -100)
         return;
 
     setBlock(hoverBlockX, hoverBlockY, hoverBlockZ, BLOCK_AIR);
 }
 static void placeBlock(uint8_t block)
 {
-    if(placeBlockX == -1)
+    if(placeBlockX == -100)
         return;
 
     // TODO maybe shouldn't place if in player, but would require a whole collision check here
@@ -270,7 +267,7 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
     }
 
     // only X is checked
-    hoverBlockX = -1; placeBlockX = -1;
+    hoverBlockX = -100; placeBlockX = -100;
 }
 
 // -------------

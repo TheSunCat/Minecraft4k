@@ -29,7 +29,7 @@ shader.h : shader.frag Makefile
 	mono ./shader_minifier.exe --preserve-externals shader.frag -o shader.h
 
 Minecraft4k.elf : Minecraft4k.c shader.h Makefile
-	gcc -o $@ $<  -lSDL2 -lGL $(CFLAGS)
+	gcc -o $@ $<  -lSDL2 -lGL -ldl -lm $(CFLAGS)
 
 Minecraft4k : Minecraft4k_opt.elf.packed
 	mv $< $@

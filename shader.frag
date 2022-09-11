@@ -43,13 +43,7 @@ void main()
 
     // raymarch outputs
 
-    // ~~stolen~~ took "inspiration" from https://github.com/Vercidium/voxel-ray-marching/blob/master/source/Map.cs
-    // Voxel ray marching from http://www.cse.chalmers.se/edu/year/2010/course/TDA361/grid.pdf
-    // Optimized by keeping block lookups within the current chunk, which minimizes bitshifts, masks and multiplication operations
-
-    // Determine the chunk-relative position of the ray using a bit-mask
     ivec3 ijk = ivec3(P);
-
 
     // The amount to increase i, j and k in each axis (either 1 or -1)
     ivec3 ijkStep = ivec3(sign(rayDir));
@@ -60,19 +54,15 @@ void main()
     // The distance to the closest voxel boundary in units of rayTravelDist
     vec3 dist = (-fract(P) * ijkStep + max(ijkStep, vec3(0))) * vInverted;
 
-    int axis = 0; // X
+    int axis; // X
 
-    float rayTravelDist = 0;
+    float rayTravelDist;
 
     while (rayTravelDist < 20) // TODO replace RENDER_DIST
     {
         // TODO exit check for performance
         //if(!inWorld(ijk))
         //    break;
-
-        // get block from world
-        // TODO replace WORLD_DIMENSIONS
-        int blockHit = int(texture(W, ijk.yxz / 64.).x * 350); // TODO is this correct? seems random
 
         vec3 hitPos = P + rayDir * rayTravelDist;
         
@@ -88,7 +78,9 @@ void main()
                 texFetch.y += 2;
         }
 
-        texFetch.x += blockHit;
+        // get block from world
+        // TODO replace WORLD_DIMENSIONS
+        texFetch.x += int(texture(W, ijk.yxz / 64.).x * 350); // TODO is this correct? seems random
 
         // TODO replace TEXTURE_RES
         vec4 textureColor = texture(T, (trunc(texFetch * 16) + .5) / (16 * vec2(7, 3)));
@@ -100,8 +92,7 @@ void main()
         if (length(textureColor) > 0) { // pixel is not transparent
             
             // TODO replace RENDER_DIST
-            float fogIntensity = (rayTravelDist / 20);
-            Z += mix(textureColor, vec4(0), fogIntensity);
+            Z += mix(textureColor, vec4(0), rayTravelDist / 20);
             return;
         }
 
