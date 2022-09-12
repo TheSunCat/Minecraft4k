@@ -62,10 +62,14 @@ static float clamp(float x, float min, float max)
 
 static uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
 
+// hacky workaround: remember block placed this frame so we can delete if colliding with
+static int blockSetThisFrame = -1;
 // size: 134!!
 static void setBlock(int x, int y, int z, uint8_t block)
 {
-    world[y + x * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT] = block;
+    blockSetThisFrame = y + x * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT;
+
+    world[blockSetThisFrame] = block;
 
     glBindTexture(GL_TEXTURE_3D, worldTex);
     glTexSubImage3D(GL_TEXTURE_3D,              // target
@@ -280,7 +284,7 @@ static void on_render()
     const float sinPitch = my_sin(cameraPitch);
     const float cosPitch = my_cos(cameraPitch);
  
-    // update position for destroying blocks
+    // update position for placing/destroying blocks
     raycastWorld(sinYaw, cosYaw, sinPitch, cosPitch);
 
     updateController();
@@ -299,7 +303,7 @@ static void on_render()
         playerVelocityZ += cosYaw * inputZ - sinYaw * inputX;
         playerVelocityY += 0.003F; // gravity
 
-        // calculate collision
+        // calculate collision per-axis
         for (int axis = 0; axis < 3; ++axis) {
             bool moveValid = true;
 
@@ -315,6 +319,11 @@ static void on_render()
 
                 if (colliderBlockPosY < 0) // ignore collision above the world height limit
                     continue;
+
+                // hacky: delete block if it was placed this frame to prevent getting stuck
+                const int colliderBlockIndex = colliderBlockPosY + colliderBlockPosX * WORLD_SIZE + colliderBlockPosZ * WORLD_SIZE * WORLD_HEIGHT;
+                if(colliderBlockIndex == blockSetThisFrame)
+                    setBlock(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ, BLOCK_AIR);
 
                 // check collision with world bounds and blocks
                 if (!isWithinWorld(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ)
@@ -345,16 +354,6 @@ static void on_render()
             }
         }
 
-        for (int colliderIndex = 0; colliderIndex < 12; ++colliderIndex) {
-            int magicX = (int) (playerPosX +        ( colliderIndex       & 1) * 0.6F - 0.3F);
-            int magicY = (int) (playerPosY + (float)((colliderIndex >> 2) - 1) * 0.8F + 0.65F);
-            int magicZ = (int) (playerPosZ +        ( colliderIndex >> 1  & 1) * 0.6F - 0.3F);
-
-            // set block to air if inside player
-            if (isWithinWorld(magicX, magicY, magicZ))
-                setBlock(magicX, magicY, magicZ, BLOCK_AIR);
-        }
-
         lastUpdateTime += 10;
     }
 
@@ -382,6 +381,8 @@ static void on_render()
 
     // render!
     glRecti(-1,-1,1,1);
+
+    blockSetThisFrame = -1;
 }
 
 // size: 154
