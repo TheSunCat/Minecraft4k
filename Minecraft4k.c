@@ -124,38 +124,6 @@ static float playerVelocityX = 0, playerVelocityY = 0, playerVelocityZ = 0;
 // spawn player at world center
 static float playerPosX = WORLD_SIZE / 2.0f + 0.5f, playerPosY = 1, playerPosZ = WORLD_SIZE / 2.0f + 0.5f;
 
-// size: 231!!
-static uint32_t lastMouseState = 0;
-static void updateMouse()
-{
-    int x, y;
-    uint32_t mouseState = SDL_GetRelativeMouseState(&x, &y);
-
-    cameraYaw += x / 500.0f;
-    cameraPitch -= y / 500.0f;
-
-    if(fabs(cameraYaw) > M_PI)
-    {
-        if (cameraYaw > 0)
-            cameraYaw = -M_PI - (cameraYaw - M_PI);
-        else
-            cameraYaw = M_PI + (cameraYaw + M_PI);
-    }
-    cameraPitch = clamp(cameraPitch, -M_PI / 2.0f, M_PI / 2.0f);
-
-    if((mouseState & SDL_BUTTON_LMASK) && !(lastMouseState & SDL_BUTTON_LMASK))
-    {
-        breakBlock();
-    }
-
-    if((mouseState & SDL_BUTTON_RMASK) && !(lastMouseState & SDL_BUTTON_RMASK))
-    {
-        placeBlock(BLOCK_DIRT);
-    }
-
-    lastMouseState = mouseState;
-}
-
 // TODO fix bad
 
 // ---------------
@@ -315,7 +283,6 @@ static void on_render()
     // update position for destroying blocks
     raycastWorld(sinYaw, cosYaw, sinPitch, cosPitch);
 
-    updateMouse();
     updateController();
   
     // calculate physics
@@ -665,6 +632,19 @@ void _start() {
                 SCR_HEIGHT = event.window.data2;
 
                 glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+            } else if(event.type == SDL_MOUSEBUTTONDOWN)
+            {
+                if(event.button.button == SDL_BUTTON_LEFT)
+                    breakBlock();
+                else
+                    placeBlock(BLOCK_DIRT);
+            } else if(event.type == SDL_MOUSEMOTION)
+            {
+                cameraYaw += event.motion.xrel / 500.0f;
+                cameraPitch -= event.motion.yrel / 500.0f;
+
+                cameraYaw = fmod(cameraYaw, 2 * M_PI);
+                cameraPitch = clamp(cameraPitch, -M_PI / 2.0f, M_PI / 2.0f);
             }
         }
 
