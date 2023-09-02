@@ -23,7 +23,7 @@ noelfver:
 	make -C noelfver
 
 packer : vondehi/vondehi.asm 
-	cd vondehi; nasm -fbin -o vondehi vondehi.asm
+	cd vondehi; nasm -fbin -o vondehi vondehi.asm -DNO_CHEATING
 
 shader.h : shader.frag Makefile
 	mono ./shader_minifier.exe --preserve-externals shader.frag -o shader.h
