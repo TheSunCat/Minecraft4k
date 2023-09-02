@@ -6,7 +6,7 @@ CFLAGS = -Os -fno-plt -fno-stack-protector -fno-stack-check -fno-unwind-tables -
   -fmerge-all-constants -mno-fancy-math-387 -mno-ieee-fp -std=gnu11 -nostartfiles
 
 ifeq ($(DEBUG),false)
-	#CFLAGS += -nostdlib # needed for rand()
+	CFLAGS += #-nostdlib # needed for rand()
 else
 	CFLAGS += -DDEBUG=true -g
 	LDFLAGS += -g
@@ -29,7 +29,7 @@ shader.h : shader.frag Makefile
 	mono ./shader_minifier.exe --preserve-externals shader.frag -o shader.h
 
 Minecraft4k.elf : Minecraft4k.c shader.h Makefile
-	gcc -o $@ $<  -lSDL2 -lGL -ldl -lm $(CFLAGS)
+	gcc -o $@ $<  -lGL -ldl $(CFLAGS)
 
 Minecraft4k : Minecraft4k_opt.elf.packed
 	mv $< $@
@@ -39,8 +39,8 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 	cp $< $@
 	objcopy --remove-section .note.gnu.property --remove-section .gnu.version --remove-section .fini --remove-section .init_array --remove-section .got --remove-section .discard $@
 	strip $@
-	# TODO this is commented because it crashes on some machines :/
-	#strip -R .note -R .comment -R .eh_frame -R .eh_frame_hdr -R .note.gnu.build-id -R .got -R .got.plt -R .gnu.version -R .shstrtab -R .gnu.version_r -R .gnu.hash -R .note.gnu.property $@
+	# this line might need to be commented on some machines to avoid a crash :/
+	strip -R .note -R .comment -R .eh_frame -R .eh_frame_hdr -R .note.gnu.build-id -R .got -R .got.plt -R .gnu.version -R .shstrtab -R .gnu.version_r -R .gnu.hash -R .note.gnu.property $@
 	./Section-Header-Stripper/section-stripper.py $@
 	sstrip $@
 	./noelfver/noelfver $@ > $@.nover
@@ -57,7 +57,7 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 
 %.xz : % Makefile
 	-rm -f $@
-	lzma --format=lzma -9 --extreme --lzma1=preset=9,lc=0,lp=0,pb=0,nice=40,depth=32,dict=16384 --keep --stdout $< > $@
+	lzma --format=lzma -9 --extreme --lzma1=preset=9,lc=0,lp=0,pb=0,nice=40,depth=16,dict=16384 --keep --stdout $< > $@
 
 %.packed : %.xz packer Makefile
 	cat ./vondehi/vondehi $< > $@

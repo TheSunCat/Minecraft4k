@@ -19,6 +19,8 @@ out vec4 Z;
 
 void main()
 {
+    Z = vec4(0, 0, 0, 1);
+
     vec2 centerDist = vec2(gl_FragCoord.x, S.y - gl_FragCoord.y) - (.5 * S);
     //vec2 absCenterDist = abs(centerDist);
     
@@ -37,7 +39,7 @@ void main()
 
     // raymarch outputs
 
-    ivec3 ijk = ivec3(P);
+    vec3 ijk = ivec3(P);
 
     // The amount to increase i, j and k in each axis (either 1 or -1)
     ivec3 ijkStep = ivec3(sign(rayDir));
@@ -54,7 +56,7 @@ void main()
 
     while (rayTravelDist < 20) // TODO replace RENDER_DIST
     {
-        // TODO exit check for performance
+        // exit check for performance, removed for code size :c
         //if(!inWorld(ijk))
         //    break;
 

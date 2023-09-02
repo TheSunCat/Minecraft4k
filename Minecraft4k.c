@@ -1,9 +1,10 @@
 #define GL_GLEXT_PROTOTYPES
 
+#include <dlfcn.h>
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <stdint.h>
 
 #include <SDL2/SDL.h>
 
@@ -16,6 +17,23 @@
 
 #include "Constants.h"
 
+// functions we will use
+
+// SDL2
+typedef SDL_Window*(*SDL_CreateWindow_t)(const char*, int, int, int, int, Uint32);
+typedef SDL_GLContext(*SDL_GL_CreateContext_t)(SDL_Window*);
+typedef int(*SDL_SetRelativeMouseMode_t)(SDL_bool);
+typedef int(*SDL_PollEvent_t)(SDL_Event*);
+typedef void(*SDL_GL_SwapWindow_t)(SDL_Window*);
+typedef Uint64(*SDL_GetTicks64_t)(void);
+typedef const Uint8*(*SDL_GetKeyboardState_t)(int*);
+
+static SDL_GetTicks64_t sym_SDL_GetTicks64;
+static SDL_GetKeyboardState_t sym_SDL_GetKeyboardState;
+
+typedef int(*rand_t)(void);
+static rand_t sym_rand;
+
 // OpenGL IDs
 static GLuint shader;
 static GLuint worldTex;
@@ -23,7 +41,7 @@ static GLuint textureAtlasTex;
 
 static uint64_t currentTime()
 {
-    return SDL_GetTicks64();
+    return sym_SDL_GetTicks64();
 }
 
 static const int X = 0, Y = 1, Z = 2;
@@ -33,7 +51,7 @@ static const int X = 0, Y = 1, Z = 2;
 #define TRIG_PRECISION 20
 static float my_sin(float x)
 {
-    return sinf(x); // looks like this is slightly smaller for now, welp
+//    return sinf(x); // looks like this is slightly smaller for now, welp
     
     float t = x;
     float sine = x;
@@ -262,7 +280,7 @@ static const uint8_t* kb = NULL;
 // size: 505!!
 static void updateController()
 {
-    kb = SDL_GetKeyboardState(NULL);
+    kb = sym_SDL_GetKeyboardState(NULL);
 }
 
 static uint64_t lastFrameTime = 0;
@@ -395,13 +413,13 @@ static void generateWorld()
     for (int i = 0; i < WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE; ++i) {
         uint8_t block;
 
-        int randInt = rand() % 8;
+        int randInt = sym_rand() % 8;
 
         int y = i % (WORLD_SIZE);
 
         // TODO make dirt more common
         if (y > (maxTerrainHeight + randInt))
-            block = (rand() % 5) + 1;
+            block = (sym_rand() % 5) + 1;
         else
             block = BLOCK_AIR;
 
@@ -440,14 +458,14 @@ static void generateTextures()
     // procedurally generates the 8x3 textureAtlas
     // gsd = grayscale detail
     for (int blockID = 1; blockID < 7; ++blockID) {
-        int gsd_tempA = 0xFF - (rand() % 0x60);
+        int gsd_tempA = 0xFF - (sym_rand() % 0x60);
 
         for (int y = 0; y < TEXTURE_RES * 3; ++y) {
             for (int x = 0; x < TEXTURE_RES; ++x) {
                 // gets executed per pixel/texel
 
-                if (blockID != BLOCK_STONE || (rand() % 3) == 0) // if the block type is stone, update the noise value less often to get a stretched out look
-                    gsd_tempA = 0xFF - (rand() % 0x60);
+                if (blockID != BLOCK_STONE || (sym_rand() % 3) == 0) // if the block type is stone, update the noise value less often to get a stretched out look
+                    gsd_tempA = 0xFF - (sym_rand() % 0x60);
 
                 int tint = 0x966C4A; // brown (dirt)
                 switch (blockID)
@@ -492,9 +510,9 @@ static void generateTextures()
                         if (dy > dx)
                             dx = dy;
 
-                        gsd_tempA = 196 - (rand() % 32) + dx % 3 * 32;
+                        gsd_tempA = 196 - (sym_rand() % 32) + dx % 3 * 32;
                     }
-                    else if ((rand() % 2) == 0) {
+                    else if ((sym_rand() % 2) == 0) {
                         // make the gsd 50% brighter on random pixels of the bark
                         // and 50% darker if x happens to be odd
                         gsd_tempA = gsd_tempA * (150 - (x & 1) * 100) / 100;
@@ -516,7 +534,7 @@ static void generateTextures()
 
                 if (blockID == BLOCK_LEAVES) {
                     tint = 0x50D937; // green
-                    if ((rand() % 2) == 0) {
+                    if ((sym_rand() % 2) == 0) {
                         tint = 0;
                         gsd_constexpr = 0xFF;
                     }
@@ -598,22 +616,38 @@ static void on_realize()
 void _start() {
     asm volatile("sub $8, %rsp\n");
 
+    // open libs we need
+    void *libSDL = dlopen("libSDL2.so", RTLD_LAZY);
+    void *libC = dlopen("libc.so", RTLD_LAZY);
+
+    // get all functions
+    SDL_CreateWindow_t sym_SDL_CreateWindow = (SDL_CreateWindow_t)dlsym(libSDL, "SDL_CreateWindow");
+    SDL_GL_CreateContext_t sym_SDL_GL_CreateContext = (SDL_GL_CreateContext_t)dlsym(libSDL, "SDL_GL_CreateContext");
+    SDL_SetRelativeMouseMode_t sym_SDL_SetRelativeMouseMode = (SDL_SetRelativeMouseMode_t)dlsym(libSDL, "SDL_SetRelativeMouseMode");
+    SDL_PollEvent_t sym_SDL_PollEvent = (SDL_PollEvent_t)dlsym(libSDL, "SDL_PollEvent");
+    SDL_GL_SwapWindow_t sym_SDL_GL_SwapWindow = (SDL_GL_SwapWindow_t)dlsym(libSDL, "SDL_GL_SwapWindow");
+    sym_SDL_GetTicks64 = (SDL_GetTicks64_t)dlsym(libSDL, "SDL_GetTicks64");
+    sym_SDL_GetKeyboardState = (SDL_GetKeyboardState_t)dlsym(libSDL, "SDL_GetKeyboardState");
+
+    sym_rand = (rand_t)dlsym(libC, "rand");
+
+        
     // technically not needed
     //SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
-    window = SDL_CreateWindow("", 0, 0,
+    window = sym_SDL_CreateWindow("", 0, 0,
         SCR_WIDTH,
         SCR_HEIGHT,
         SDL_WINDOW_OPENGL// TODO freezes why??? | SDL_WINDOW_RESIZABLE//| SDL_WINDOW_FULLSCREEN
     );
 
-    SDL_GL_CreateContext(window);
-    SDL_SetRelativeMouseMode(SDL_TRUE);
+    sym_SDL_GL_CreateContext(window);
+    sym_SDL_SetRelativeMouseMode(SDL_TRUE);
 
     on_realize();
 
     while (true) {
         SDL_Event event;
-        while (SDL_PollEvent(&event)) {
+        while (sym_SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT
 #if defined(KEY_HANDLING)
                 || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)
@@ -650,7 +684,7 @@ void _start() {
         }
 
         on_render();
-        SDL_GL_SwapWindow(window);
+        sym_SDL_GL_SwapWindow(window);
     }
     __builtin_unreachable();
 }
