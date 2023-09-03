@@ -406,8 +406,11 @@ static void generateWorld()
     glBindTexture(GL_TEXTURE_3D, worldTex);
 
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+#ifndef WORLD_WRAP
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+#endif
+
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -466,11 +469,7 @@ static void generateTextures()
                         ((y > 0 && y < TEXTURE_RES - 1) || (y > TEXTURE_RES * 2 && y < TEXTURE_RES * 3 - 1))) { // wood side area
                         tint = 0xBC9862; // light brown
 
-                        // the following code repurposes 2 gsd variables making it a bit hard to read
-                        // but in short it gets the absolute distance from the tile's center in x and y direction 
-                        // finds the max of it
-                        // uses that to make the gray scale detail darker if the current pixel is part of an annual ring
-                        // and adds some noise as a finishing touch
+                        // make the gray scale detail darker if the current pixel is part of an annual ring
                         int woodCenter = TEXTURE_RES / 2 - 1;
 
                         int dx = x - woodCenter;
@@ -485,6 +484,7 @@ static void generateTextures()
                         if (dy > dx)
                             dx = dy;
 
+                        // add some noise as a finishing touch
                         gsd_tempA = 196 - (rand() % 32) + dx % 3 * 32;
                     }
                     else if ((rand() % 2) == 0) {
@@ -503,23 +503,23 @@ static void generateTextures()
                 }
                 }
 
-                int gsd_constexpr = gsd_tempA;
+                int gsd_final = gsd_tempA;
                 if (y >= TEXTURE_RES * 2) // bottom side of the block
-                    gsd_constexpr /= 2; // make it darker, baked "shading"
+                    gsd_final /= 2; // make it darker, baked "shading"
 
                 if (blockID == BLOCK_LEAVES) {
                     tint = 0x50D937; // green
                     if ((rand() % 2) == 0) {
                         tint = 0;
-                        gsd_constexpr = 0xFF;
+                        gsd_final = 0xFF;
                     }
                 }
 
                 // multiply tint by the grayscale detail
                 const int col = ((tint & 0xFFFFFF) == 0 ? 0 : 0xFF) << 24 |
-                    (tint >> 16 & 0xFF) * gsd_constexpr / 0xFF << 16 |
-                    (tint >> 8 & 0xFF) * gsd_constexpr / 0xFF << 8 |
-                    (tint & 0xFF) * gsd_constexpr / 0xFF << 0;
+                    (tint >> 16 & 0xFF) * gsd_final / 0xFF << 16 |
+                    (tint >> 8 & 0xFF) * gsd_final / 0xFF << 8 |
+                    (tint & 0xFF) * gsd_final / 0xFF << 0;
 
                 // write pixel to the texture atlas
                 textureAtlas[x + (TEXTURE_RES * blockID) + y * (TEXTURE_RES * 7)] = col;
@@ -534,7 +534,7 @@ static void generateTextures()
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_RES * 7, TEXTURE_RES * 3, 0, GL_BGRA, GL_UNSIGNED_BYTE, textureAtlas);
 }
