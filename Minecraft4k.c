@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include <SDL2/SDL.h>
 
@@ -30,9 +31,6 @@ typedef const Uint8*(*SDL_GetKeyboardState_t)(int*);
 
 SDL_GetTicks64_t sym_SDL_GetTicks64;
 SDL_GetKeyboardState_t sym_SDL_GetKeyboardState;
-
-typedef int(*rand_t)(void);
-rand_t sym_rand;
 
 // OpenGL IDs
 GLuint shader;
@@ -65,14 +63,14 @@ static float my_cos(float x)
     return my_sin(x + M_PI / 2.0f);
 }
 
-float clamp(float x, float min, float max)
-{
-    if(x < min)
-        return min;
-    if(x > max)
-        return max;
-    return x;
-}
+// float clamp(float x, float min, float max)
+// {
+//     if(x < min)
+//         return min;
+//     if(x > max)
+//         return max;
+//     return x;
+// }
 
 uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
 
@@ -127,7 +125,6 @@ static void placeBlock(uint8_t block)
     if(placeBlockX == -100)
         return;
 
-    // TODO maybe shouldn't place if in player, but would require a whole collision check here
     setBlock(placeBlockX, placeBlockY, placeBlockZ, block);
 }
 
@@ -142,12 +139,6 @@ float playerVelocityX = 0, playerVelocityY = 0, playerVelocityZ = 0;
 
 // spawn player at world center
 float playerPosX = WORLD_SIZE / 2.0f + 0.5f, playerPosY = 1, playerPosZ = WORLD_SIZE / 2.0f + 0.5f;
-
-// TODO fix bad
-
-// ---------------
-// BAD STARTS HERE
-// ---------------
 
 // size: 4
 float my_fract(float x)
@@ -267,10 +258,6 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
     // only X is checked
     hoverBlockX = -100; placeBlockX = -100;
 }
-
-// -------------
-// BAD ENDS HERE
-// -------------
 
 const uint8_t* kb = NULL;
 
@@ -410,13 +397,13 @@ static void generateWorld()
     for (int i = 0; i < WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE; ++i) {
         uint8_t block;
 
-        int randInt = sym_rand() % 8;
+        int randInt = rand() % 8;
 
         int y = i % (WORLD_SIZE);
 
         // TODO make dirt more common
         if (y > (maxTerrainHeight + randInt))
-            block = (sym_rand() % 5) + 1;
+            block = (rand() % 5) + 1;
         else
             block = BLOCK_AIR;
 
@@ -455,14 +442,14 @@ static void generateTextures()
     // procedurally generates the 8x3 textureAtlas
     // gsd = grayscale detail
     for (int blockID = 1; blockID < 7; ++blockID) {
-        int gsd_tempA = 0xFF - (sym_rand() % 0x60);
+        int gsd_tempA = 0xFF - (rand() % 0x60);
 
         for (int y = 0; y < TEXTURE_RES * 3; ++y) {
             for (int x = 0; x < TEXTURE_RES; ++x) {
                 // gets executed per pixel/texel
 
-                if (blockID != BLOCK_STONE || (sym_rand() % 3) == 0) // if the block type is stone, update the noise value less often to get a stretched out look
-                    gsd_tempA = 0xFF - (sym_rand() % 0x60);
+                if (blockID != BLOCK_STONE || (rand() % 3) == 0) // if the block type is stone, update the noise value less often to get a stretched out look
+                    gsd_tempA = 0xFF - (rand() % 0x60);
 
                 int tint = 0x966C4A; // brown (dirt)
                 switch (blockID)
@@ -474,9 +461,9 @@ static void generateTextures()
                 }
                 case BLOCK_GRASS:
                 {
-                    if (y < ((x * x * 3 + x * 81) >> 2 & 0x3) + (TEXTURE_RES * 1.125f)) // grass + grass edge
+                    if (y < ((x * x * 3 + x * 81) >> 2 & 0x3) + (int)(TEXTURE_RES * 1.125f)) // grass + grass edge
                         tint = 0x6AAA40; // green
-                    else if (y < ((x * x * 3 + x * 81) >> 2 & 0x3) + (TEXTURE_RES * 1.1875f)) // grass edge shadow
+                    else if (y < ((x * x * 3 + x * 81) >> 2 & 0x3) + (int)(TEXTURE_RES * 1.1875f)) // grass edge shadow
                         gsd_tempA = gsd_tempA * 2 / 3;
                     break;
                 }
@@ -507,9 +494,9 @@ static void generateTextures()
                         if (dy > dx)
                             dx = dy;
 
-                        gsd_tempA = 196 - (sym_rand() % 32) + dx % 3 * 32;
+                        gsd_tempA = 196 - (rand() % 32) + dx % 3 * 32;
                     }
-                    else if ((sym_rand() % 2) == 0) {
+                    else if ((rand() % 2) == 0) {
                         // make the gsd 50% brighter on random pixels of the bark
                         // and 50% darker if x happens to be odd
                         gsd_tempA = gsd_tempA * (150 - (x & 1) * 100) / 100;
@@ -531,7 +518,7 @@ static void generateTextures()
 
                 if (blockID == BLOCK_LEAVES) {
                     tint = 0x50D937; // green
-                    if ((sym_rand() % 2) == 0) {
+                    if ((rand() % 2) == 0) {
                         tint = 0;
                         gsd_constexpr = 0xFF;
                     }
@@ -615,7 +602,6 @@ void _start() {
 
     // open libs we need
     void *libSDL = dlopen("libSDL2.so", RTLD_LAZY);
-    void *libC = dlopen("libc.so", RTLD_LAZY);
 
     // get all functions
     SDL_CreateWindow_t sym_SDL_CreateWindow = (SDL_CreateWindow_t)dlsym(libSDL, "SDL_CreateWindow");
@@ -626,9 +612,6 @@ void _start() {
     sym_SDL_GetTicks64 = (SDL_GetTicks64_t)dlsym(libSDL, "SDL_GetTicks64");
     sym_SDL_GetKeyboardState = (SDL_GetKeyboardState_t)dlsym(libSDL, "SDL_GetKeyboardState");
 
-    sym_rand = (rand_t)dlsym(libC, "rand");
-
-        
     // technically not needed
     //SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
     window = sym_SDL_CreateWindow("", 0, 0,
@@ -645,11 +628,8 @@ void _start() {
     while (true) {
         SDL_Event event;
         while (sym_SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT
-#if defined(KEY_HANDLING)
-                || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)
-#endif
-            ) {
+            switch(event.type) {
+              case SDL_QUIT:
                 // TODO why not return;
                 asm volatile(".intel_syntax noprefix");
                 asm volatile("push 231"); //exit_group
@@ -658,25 +638,25 @@ void _start() {
                 asm volatile("syscall");
                 asm volatile(".att_syntax prefix");
                 __builtin_unreachable();
-            } else if(event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED)
-            {
-                SCR_WIDTH = event.window.data1;
-                SCR_HEIGHT = event.window.data2;
+              case SDL_WINDOWEVENT:
+                if(event.window.event == SDL_WINDOWEVENT_RESIZED)
+                {
+                    SCR_WIDTH = event.window.data1;
+                    SCR_HEIGHT = event.window.data2;
 
-                glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-            } else if(event.type == SDL_MOUSEBUTTONDOWN)
-            {
+                    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+                }
+                break;
+              case SDL_MOUSEBUTTONDOWN:
                 if(event.button.button == SDL_BUTTON_LEFT)
                     breakBlock();
                 else
                     placeBlock(BLOCK_DIRT);
-            } else if(event.type == SDL_MOUSEMOTION)
-            {
+                break;
+              case SDL_MOUSEMOTION:
                 cameraYaw += event.motion.xrel / 500.0f;
                 cameraPitch -= event.motion.yrel / 500.0f;
-
-                cameraYaw = fmod(cameraYaw, 2 * M_PI);
-                cameraPitch = clamp(cameraPitch, -M_PI / 2.0f, M_PI / 2.0f);
+                cameraPitch = fmin(M_PI / 2.f, fmax(-M_PI / 2.f, cameraPitch));
             }
         }
 
