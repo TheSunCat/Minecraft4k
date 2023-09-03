@@ -429,11 +429,6 @@ int textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 7];
 // size: 624!!
 static void generateTextures()
 {
-    // set random seed to generate textures
-    //long long seed = 151910774187927L;
-
-
-    // procedurally generates the 8x3 textureAtlas
     // gsd = grayscale detail
     for (int blockID = 1; blockID < 7; ++blockID) {
         int gsd_tempA = 0xFF - (rand() % 0x60);

@@ -33,9 +33,9 @@ void main()
     // rotate frustum space to world space
     float temp = d + frustumRay.y * g;
 
-    vec3 rayDir = normalize(vec3(frustumRay.x * c + temp * e,
-                                 frustumRay.y * d - g,
-                                 temp * c - frustumRay.x * e));
+    vec3 rayDir = vec3(frustumRay.x * c + temp * e,
+                       frustumRay.y * d - g,
+                       temp * c - frustumRay.x * e);
 
     // raymarch outputs
 
