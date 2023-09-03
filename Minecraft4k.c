@@ -63,15 +63,6 @@ static float my_cos(float x)
     return my_sin(x + M_PI / 2.0f);
 }
 
-// float clamp(float x, float min, float max)
-// {
-//     if(x < min)
-//         return min;
-//     if(x > max)
-//         return max;
-//     return x;
-// }
-
 uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
 
 int toIndex(int x, int y, int z)
@@ -88,7 +79,7 @@ static void setBlock(int x, int y, int z, uint8_t block)
 
     world[blockSetThisFrame] = block;
 
-    glBindTexture(GL_TEXTURE_3D, worldTex);
+    // glBindTexture(GL_TEXTURE_3D, worldTex);
     glTexSubImage3D(GL_TEXTURE_3D,              // target
         0,                                      // level
         y, x, z,                                // offset
@@ -192,7 +183,7 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
 
         int blockHit = getBlock(i, j, k);
 
-        if(blockHit != 0) // BLOCK_AIR
+        if(blockHit != BLOCK_AIR)
         {
             hoverBlockX = i; hoverBlockY = j; hoverBlockZ = k;
             placeBlockX = i; placeBlockY = j; placeBlockZ = k;
@@ -331,7 +322,7 @@ static void on_render()
                 if (!isWithinWorld(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ)
                     || getBlock(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ) != BLOCK_AIR) {
 
-                    if (axis == 1) // AXIS_Y
+                    if (axis == Y)
                     {
                         // if we're falling, colliding, and we press space
                         if ((kb[SDL_SCANCODE_SPACE]) && playerVelocityY > 0.0f) {
