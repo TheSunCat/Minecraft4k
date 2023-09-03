@@ -28,39 +28,35 @@ typedef void(*SDL_GL_SwapWindow_t)(SDL_Window*);
 typedef Uint64(*SDL_GetTicks64_t)(void);
 typedef const Uint8*(*SDL_GetKeyboardState_t)(int*);
 
-static SDL_GetTicks64_t sym_SDL_GetTicks64;
-static SDL_GetKeyboardState_t sym_SDL_GetKeyboardState;
+SDL_GetTicks64_t sym_SDL_GetTicks64;
+SDL_GetKeyboardState_t sym_SDL_GetKeyboardState;
 
 typedef int(*rand_t)(void);
-static rand_t sym_rand;
+rand_t sym_rand;
 
 // OpenGL IDs
-static GLuint shader;
-static GLuint worldTex;
-static GLuint textureAtlasTex;
+GLuint shader;
+GLuint worldTex;
+GLuint textureAtlasTex;
 
 static uint64_t currentTime()
 {
     return sym_SDL_GetTicks64();
 }
 
-static const int X = 0, Y = 1, Z = 2;
+const int X = 0, Y = 1, Z = 2;
 
-// size: 17
-// TODO tune this, or use inline x86 ASM
-#define TRIG_PRECISION 20
-static float my_sin(float x)
+float my_sin(float x)
 {
-//    return sinf(x); // looks like this is slightly smaller for now, welp
+    float sine;
     
-    float t = x;
-    float sine = x;
-    for (int a=1; a < TRIG_PRECISION; ++a)
-    {
-        float mult = -x*x/((2*a+1)*(2*a));
-        t *= mult;
-        sine += t;
-    }
+    asm (
+        "fsin;"
+        "fstps %0;"
+        : "=m" (sine)
+        : "t" (x)
+    );
+
     return sine;
 }
 
@@ -69,7 +65,7 @@ static float my_cos(float x)
     return my_sin(x + M_PI / 2.0f);
 }
 
-static float clamp(float x, float min, float max)
+float clamp(float x, float min, float max)
 {
     if(x < min)
         return min;
@@ -78,14 +74,19 @@ static float clamp(float x, float min, float max)
     return x;
 }
 
-static uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
+uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
+
+int toIndex(int x, int y, int z)
+{
+    return y + x * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT;
+}
 
 // hacky workaround: remember block placed this frame so we can delete if colliding with
-static int blockSetThisFrame = -1;
-// size: 134!!
+int blockSetThisFrame = -1;
+
 static void setBlock(int x, int y, int z, uint8_t block)
 {
-    blockSetThisFrame = y + x * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT;
+    blockSetThisFrame = toIndex(x, y, z);
 
     world[blockSetThisFrame] = block;
 
@@ -99,23 +100,20 @@ static void setBlock(int x, int y, int z, uint8_t block)
         &block);                                // data
 }
 
-// size: 22
-static uint8_t getBlock(int x, int y, int z)
+uint8_t getBlock(int x, int y, int z)
 {
-    return world[y + x * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT];
+    return world[toIndex(x, y, z)];
 }
 
-// size: 23
-static int isWithinWorld(int x, int y, int z)
+int isWithinWorld(int x, int y, int z)
 {
-    return x >= 0.0f && y >= 0.0f && z >= 0.0f &&
-           x < WORLD_SIZE && y < WORLD_HEIGHT && z < WORLD_SIZE;
+    return (x >= 0) & (y >= 0) & (z >= 0) &
+           (x < WORLD_SIZE) & (y < WORLD_HEIGHT) & (z < WORLD_SIZE);
 }
 
-static int hoverBlockX = -100, hoverBlockY = -100, hoverBlockZ = -100;
-static int placeBlockX = -100, placeBlockY = -100, placeBlockZ = -100;
+int hoverBlockX = -100, hoverBlockY = -100, hoverBlockZ = -100;
+int placeBlockX = -100, placeBlockY = -100, placeBlockZ = -100;
 
-// size: none
 static void breakBlock()
 {
     if(hoverBlockX == -100)
@@ -124,7 +122,6 @@ static void breakBlock()
     setBlock(hoverBlockX, hoverBlockY, hoverBlockZ, BLOCK_AIR);
 }
 
-// size: none
 static void placeBlock(uint8_t block)
 {
     if(placeBlockX == -100)
@@ -134,17 +131,17 @@ static void placeBlock(uint8_t block)
     setBlock(placeBlockX, placeBlockY, placeBlockZ, block);
 }
 
-static SDL_Window* window;
-static int SCR_WIDTH = SCR_WIDTH_DEFAULT * (float) (1 << SCR_DETAIL);
-static int SCR_HEIGHT = SCR_HEIGHT_DEFAULT * (float) (1 << SCR_DETAIL);
+SDL_Window* window;
+int SCR_WIDTH = SCR_WIDTH_DEFAULT * (float) (1 << SCR_DETAIL);
+int SCR_HEIGHT = SCR_HEIGHT_DEFAULT * (float) (1 << SCR_DETAIL);
 
-static float cameraPitch = 0;
-static float cameraYaw = 0;
+float cameraPitch = 0;
+float cameraYaw = 0;
 
-static float playerVelocityX = 0, playerVelocityY = 0, playerVelocityZ = 0;
+float playerVelocityX = 0, playerVelocityY = 0, playerVelocityZ = 0;
 
 // spawn player at world center
-static float playerPosX = WORLD_SIZE / 2.0f + 0.5f, playerPosY = 1, playerPosZ = WORLD_SIZE / 2.0f + 0.5f;
+float playerPosX = WORLD_SIZE / 2.0f + 0.5f, playerPosY = 1, playerPosZ = WORLD_SIZE / 2.0f + 0.5f;
 
 // TODO fix bad
 
@@ -153,13 +150,13 @@ static float playerPosX = WORLD_SIZE / 2.0f + 0.5f, playerPosY = 1, playerPosZ =
 // ---------------
 
 // size: 4
-static float my_fract(float x)
+float my_fract(float x)
 {
     return x - (float)((int) x);
 }
 
 // size: 10
-static int my_sign(float x)
+int my_sign(float x)
 {
     if(x < 0)
         return -1;
@@ -174,13 +171,13 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
     const float rayDirY = -sinPitch;
     const float rayDirZ = cosPitch * cosYaw;
 
-    float i = (int)playerPosX;
-    float j = (int)playerPosY;
-    float k = (int)playerPosZ;
+    int i = (int)playerPosX;
+    int j = (int)playerPosY;
+    int k = (int)playerPosZ;
 
-    const float iStep = my_sign(rayDirX);
-    const float jStep = my_sign(rayDirY);
-    const float kStep = my_sign(rayDirZ);
+    const int iStep = my_sign(rayDirX);
+    const int jStep = my_sign(rayDirY);
+    const int kStep = my_sign(rayDirZ);
 
     const float vInvertedX = fabs(1/rayDirX);
     const float vInvertedY = fabs(1/rayDirY);
@@ -195,7 +192,7 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
 
     int axis = X;
 
-    float rayTravelDist = 0;
+    float rayTravelDist = 0.f;
     while(rayTravelDist < PLAYER_REACH)
     {
         // exit check
@@ -275,7 +272,7 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
 // BAD ENDS HERE
 // -------------
 
-static const uint8_t* kb = NULL;
+const uint8_t* kb = NULL;
 
 // size: 505!!
 static void updateController()
@@ -283,8 +280,8 @@ static void updateController()
     kb = sym_SDL_GetKeyboardState(NULL);
 }
 
-static uint64_t lastFrameTime = 0;
-static uint64_t lastUpdateTime;
+uint64_t lastFrameTime = 0;
+uint64_t lastUpdateTime;
 
 // size: 1611
 static void on_render()
@@ -339,7 +336,7 @@ static void on_render()
                     continue;
 
                 // hacky: delete block if it was placed this frame to prevent getting stuck
-                const int colliderBlockIndex = colliderBlockPosY + colliderBlockPosX * WORLD_SIZE + colliderBlockPosZ * WORLD_SIZE * WORLD_HEIGHT;
+                const int colliderBlockIndex = toIndex(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ);
                 if(colliderBlockIndex == blockSetThisFrame)
                     setBlock(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ, BLOCK_AIR);
 
@@ -446,7 +443,7 @@ static void generateWorld()
         world);                                 // pixels
 }
 
-static int textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 7];
+int textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 7];
 
 // size: 624!!
 static void generateTextures()
