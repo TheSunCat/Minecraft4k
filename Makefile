@@ -12,7 +12,7 @@ else
 	LDFLAGS += -g
 endif
 
-CFLAGS += -Wl,--gc-sections,--no-keep-memory,--no-export-dynamic,--orphan-handling=discard,-z,noseparate-code,-z,stack-size=0,--hash-style=gnu
+CFLAGS += -Wl,--gc-sections,--no-keep-memory,--no-export-dynamic,--orphan-handling=discard,-z,noseparate-code,-z,stack-size=0,--hash-style=gnu,-Tlinker.ld
 #TODO ,-z,max-page-size=256,--no-dynamic-linker,-nostdlib
 
 .PHONY: clean checkgccversion noelfver
@@ -37,10 +37,8 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 #all the rest of these rules just takes a compiled elf file and generates a packed version of it with vondehi
 %_opt.elf : %.elf Makefile noelfver
 	cp $< $@
-	objcopy --remove-section .note.gnu.property --remove-section .gnu.version --remove-section .fini --remove-section .init_array --remove-section .got --remove-section .discard $@
 	strip $@
-	# this line might need to be commented on some machines to avoid a crash :/
-	strip -R .note -R .comment -R .eh_frame -R .eh_frame_hdr -R .note.gnu.build-id -R .got -R .got.plt -R .gnu.version -R .shstrtab -R .gnu.version_r -R .gnu.hash -R .note.gnu.property $@
+	strip -R .note.gnu.property -R .note.gnu.build-id -R .gnu.hash -R .gnu.version -R .fini -R .init_array -R .got -R .discard -R .eh_frame -R .got.plt -R .comment $@
 	./Section-Header-Stripper/section-stripper.py $@
 	sstrip $@
 	./noelfver/noelfver $@ > $@.nover
