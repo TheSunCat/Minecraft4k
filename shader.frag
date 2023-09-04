@@ -2,7 +2,7 @@
 
 // camera stuff
 uniform float c, d, e, g; // cosYaw, cosPitch, sinYaw, sinPitch
-uniform vec2 r,S;     // frustumDiv, SCREEN_SIZE
+uniform vec2 r;     // frustumDiv, SCREEN_SIZE
 uniform vec3 P;     // Position
 
 // world (texture 0)
@@ -21,12 +21,12 @@ void main()
 {
     Z = vec4(0, 0, 0, 1);
 
-    vec2 centerDist = vec2(gl_FragCoord.x, S.y - gl_FragCoord.y) - (.5 * S);
+    vec2 centerDist = vec2(gl_FragCoord.x, 480 - gl_FragCoord.y) - vec2(428,240);
     //vec2 absCenterDist = abs(centerDist);
     
     // draw crosshair
-    if(length(step(abs(centerDist), vec2(2)) + step(abs(centerDist), vec2(10))) > 2) 
-        Z += 1;
+    // if(length(step(abs(centerDist), vec2(2)) + step(abs(centerDist), vec2(10))) > 2)
+    //     Z += 1;
 
     vec2 frustumRay = centerDist / r;
 
@@ -64,7 +64,7 @@ void main()
         
         // side of block
         vec2 texFetch = fract(vec2(hitPos.x + hitPos.z, hitPos.y));
-        texFetch.y += 1; // ++ compresses worse for some reason
+        texFetch.y++;
 
         if (axis == 1) // Y. we hit the top/bottom of block
         {
@@ -76,14 +76,14 @@ void main()
 
         // get block from world
         // TODO replace WORLD_DIMENSIONS
-        texFetch.x += int(texture(W, ijk.yxz / 64.).x * 350); // TODO this multiplier is wrong. Stone is never drawn?
+        texFetch.x += texture(W, ijk.yxz / 64.).x * 255;
 
         // TODO replace TEXTURE_RES
         vec4 textureColor = texture(T, (trunc(texFetch * 16) + .5) / 16 / vec2(7, 3));
 
         // highlight hovered block
         // multiply by 9 to make sure it's white
-        textureColor += int(ijk == b && length(step(vec2(7 / 16.), abs(fract(texFetch) - .5))) > 0) * 9;
+        textureColor += int(ijk == b && length(step(vec2(.44), abs(fract(texFetch) - .5))) > 0) * 9;
 
         if (length(textureColor) > 0) { // pixel is not transparent, so output color
             

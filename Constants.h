@@ -9,7 +9,7 @@
 #define WORLD_SIZE 64
 #define WORLD_HEIGHT 64
 
-// TODO: #define WORLD_WRAP
+#define WORLD_WRAP
 
 #define SCR_DETAIL 2
 

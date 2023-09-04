@@ -67,15 +67,15 @@ static float my_cos(float x)
 
 uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
 
-int toIndex(int x, int y, int z)
+uint32_t toIndex(uint32_t x, uint32_t y, uint32_t z)
 {
     return y + x * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT;
 }
 
 // hacky workaround: remember block placed this frame so we can delete if colliding with
-int blockSetThisFrame = -1;
+uint32_t blockSetThisFrame = -1;
 
-static void setBlock(int x, int y, int z, uint8_t block)
+static void setBlock(uint32_t x, uint32_t y, uint32_t z, uint8_t block)
 {
     blockSetThisFrame = toIndex(x, y, z);
 
@@ -91,39 +91,32 @@ static void setBlock(int x, int y, int z, uint8_t block)
         &block);                                // data
 }
 
-uint8_t getBlock(int x, int y, int z)
+uint8_t getBlock(uint32_t x, uint32_t y, uint32_t z)
 {
     return world[toIndex(x, y, z)];
 }
 
-int isWithinWorld(int x, int y, int z)
+bool isWithinWorld(uint32_t x, uint32_t y, uint32_t z)
 {
-    return (x >= 0) & (y >= 0) & (z >= 0) &
-           (x < WORLD_SIZE) & (y < WORLD_HEIGHT) & (z < WORLD_SIZE);
+    return (x < WORLD_SIZE) & (y < WORLD_HEIGHT) & (z < WORLD_SIZE);
 }
 
-int hoverBlockX = -100, hoverBlockY = -100, hoverBlockZ = -100;
-int placeBlockX = -100, placeBlockY = -100, placeBlockZ = -100;
+uint32_t hoverBlockX = 0, hoverBlockY = 0, hoverBlockZ = 0;
+uint32_t placeBlockX = 0, placeBlockY = 0, placeBlockZ = 0;
 
 static void breakBlock()
 {
-    if(hoverBlockX == -100)
-        return;
-
     setBlock(hoverBlockX, hoverBlockY, hoverBlockZ, BLOCK_AIR);
 }
 
 static void placeBlock(uint8_t block)
 {
-    if(placeBlockX == -100)
-        return;
-
     setBlock(placeBlockX, placeBlockY, placeBlockZ, block);
 }
 
 SDL_Window* window;
-int SCR_WIDTH = SCR_WIDTH_DEFAULT * (float) (1 << SCR_DETAIL);
-int SCR_HEIGHT = SCR_HEIGHT_DEFAULT * (float) (1 << SCR_DETAIL);
+const uint32_t SCR_WIDTH = SCR_WIDTH_DEFAULT * (1 << SCR_DETAIL);
+const uint32_t SCR_HEIGHT = SCR_HEIGHT_DEFAULT * (1 << SCR_DETAIL);
 
 float cameraPitch = 0;
 float cameraYaw = 0;
@@ -140,7 +133,7 @@ float my_fract(float x)
 }
 
 // size: 10
-int my_sign(float x)
+int8_t my_sign(float x)
 {
     if(x < 0)
         return -1;
@@ -159,9 +152,9 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
     int j = (int)playerPosY;
     int k = (int)playerPosZ;
 
-    const int iStep = my_sign(rayDirX);
-    const int jStep = my_sign(rayDirY);
-    const int kStep = my_sign(rayDirZ);
+    const int8_t iStep = my_sign(rayDirX);
+    const int8_t jStep = my_sign(rayDirY);
+    const int8_t kStep = my_sign(rayDirZ);
 
     const float vInvertedX = fabs(1/rayDirX);
     const float vInvertedY = fabs(1/rayDirY);
@@ -174,7 +167,7 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
     distX += iStep == 1; distY += jStep == 1; distZ += kStep == 1;
     distX *= vInvertedX; distY *= vInvertedY; distZ *= vInvertedZ;
 
-    int axis = X;
+    uint8_t axis = X;
 
     float rayTravelDist = 0.f;
     while(rayTravelDist < PLAYER_REACH)
@@ -183,7 +176,7 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
         if(!isWithinWorld(i, j, k))
             break;
 
-        int blockHit = getBlock(i, j, k);
+        uint8_t blockHit = getBlock(i, j, k);
 
         if(blockHit != BLOCK_AIR)
         {
@@ -248,8 +241,8 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
         }
     }
 
-    // only X is checked
-    hoverBlockX = -100; placeBlockX = -100;
+    // focus the top of the world by default (hope the player won't see!)
+    hoverBlockY = 0; placeBlockY = 0;
 }
 
 const uint8_t* kb = NULL;
@@ -261,7 +254,7 @@ static void updateController()
 }
 
 uint64_t lastFrameTime = 0;
-uint64_t lastUpdateTime;
+uint64_t lastUpdateTime = 0;
 
 // size: 1611
 static void on_render()
@@ -285,38 +278,36 @@ static void on_render()
     updateController();
   
     // calculate physics
-    while (currentTime() - lastUpdateTime > 10)
+    // while (currentTime() - lastUpdateTime > 10)
     {
-        const float inputX = (-kb[SDL_SCANCODE_A] + kb[SDL_SCANCODE_D]) * 0.02F;
-        const float inputZ = (-kb[SDL_SCANCODE_S] + kb[SDL_SCANCODE_W]) * 0.02F;
+        const float inputX = (-kb[SDL_SCANCODE_A] + kb[SDL_SCANCODE_D]) * 0.02f;
+        const float inputZ = (-kb[SDL_SCANCODE_S] + kb[SDL_SCANCODE_W]) * 0.02f;
 
-        playerVelocityX *= 0.5F;
-        playerVelocityY *= 0.99F;
-        playerVelocityZ *= 0.5F;
+        playerVelocityX *= 0.5f;
+        playerVelocityY *= 0.99f;
+        playerVelocityZ *= 0.5f;
 
         playerVelocityX += sinYaw * inputZ + cosYaw * inputX;
         playerVelocityZ += cosYaw * inputZ - sinYaw * inputX;
-        playerVelocityY += 0.003F; // gravity
+        playerVelocityY += 0.003f; // gravity
 
         // calculate collision per-axis
-        for (int axis = 0; axis < 3; ++axis) {
+        for (uint8_t axis = 0; axis < 3; ++axis) {
             bool moveValid = true;
 
+            // TODO implement WORLD_WRAP
             const float newPlayerPosX = playerPosX + playerVelocityX * (axis == X);
             const float newPlayerPosY = playerPosY + playerVelocityY * (axis == Y);
             const float newPlayerPosZ = playerPosZ + playerVelocityZ * (axis == Z);
 
             for (int colliderIndex = 0; colliderIndex < 12; ++colliderIndex) {
                 // magic
-                const int colliderBlockPosX = newPlayerPosX + (colliderIndex   % 2) * 0.6f - 0.3f;
-                const int colliderBlockPosY = newPlayerPosY + (colliderIndex/4 - 1) * 0.8f + 0.65f;
-                const int colliderBlockPosZ = newPlayerPosZ + (colliderIndex/2 % 2) * 0.6f - 0.3f;
-
-                if (colliderBlockPosY < 0) // ignore collision above the world height limit
-                    continue;
+                const uint32_t colliderBlockPosX = newPlayerPosX + (colliderIndex   % 2) * 0.6f - 0.3f;
+                const uint32_t colliderBlockPosY = newPlayerPosY + (colliderIndex/4 - 1) * 0.8f + 0.65f;
+                const uint32_t colliderBlockPosZ = newPlayerPosZ + (colliderIndex/2 % 2) * 0.6f - 0.3f;
 
                 // hacky: delete block if it was placed this frame to prevent getting stuck
-                const int colliderBlockIndex = toIndex(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ);
+                const uint32_t colliderBlockIndex = toIndex(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ);
                 if(colliderBlockIndex == blockSetThisFrame)
                     setBlock(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ, BLOCK_AIR);
 
@@ -329,7 +320,7 @@ static void on_render()
                         // if we're falling, colliding, and we press space
                         if ((kb[SDL_SCANCODE_SPACE]) && playerVelocityY > 0.0f) {
 
-                            playerVelocityY = -0.1F; // jump
+                            playerVelocityY = -0.1f; // jump
                         }
                         else { // we're on the ground, not jumping
 
@@ -363,7 +354,7 @@ static void on_render()
     glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
     glUniform1i(glGetUniformLocation(shader, "T"), 1);
 
-    glUniform2f(glGetUniformLocation(shader, "S"), SCR_WIDTH, SCR_HEIGHT);
+    // glUniform2f(glGetUniformLocation(shader, "S"), SCR_WIDTH, SCR_HEIGHT);
     
     glUniform1f(glGetUniformLocation(shader, "c"), cosYaw);
     glUniform1f(glGetUniformLocation(shader, "d"), cosPitch);
@@ -383,22 +374,17 @@ static void on_render()
 // size: 154
 static void generateWorld()
 {
-    const int maxTerrainHeight = WORLD_HEIGHT / 2;
+    const uint8_t maxTerrainHeight = WORLD_HEIGHT / 2;
 
-    //long long seed = 18295169L;
+    for (uint32_t i = 0; i < WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE; ++i) {
+        uint8_t block = BLOCK_AIR;
 
-    for (int i = 0; i < WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE; ++i) {
-        uint8_t block;
+        uint32_t randInt = rand() % 8;
 
-        int randInt = rand() % 8;
+        uint32_t y = i % (WORLD_SIZE);
 
-        int y = i % (WORLD_SIZE);
-
-        // TODO make dirt more common
         if (y > (maxTerrainHeight + randInt))
-            block = (rand() % 5) + 1;
-        else
-            block = BLOCK_AIR;
+            block = (rand() % 6) + 1;
 
         world[i] = block;
     }
@@ -426,23 +412,23 @@ static void generateWorld()
         world);                                 // pixels
 }
 
-int textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 7];
+uint32_t textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 7];
 
 // size: 624!!
 static void generateTextures()
 {
     // gsd = grayscale detail
-    for (int blockID = 1; blockID < 7; ++blockID) {
-        int gsd_tempA = 0xFF - (rand() % 0x60);
+    for (uint32_t blockID = 1; blockID < 7; ++blockID) {
+        uint32_t gsd_tempA = 0xFF - (rand() % 0x60);
 
-        for (int y = 0; y < TEXTURE_RES * 3; ++y) {
-            for (int x = 0; x < TEXTURE_RES; ++x) {
+        for (uint32_t y = 0; y < TEXTURE_RES * 3; ++y) {
+            for (uint32_t x = 0; x < TEXTURE_RES; ++x) {
                 // gets executed per pixel/texel
 
                 if (blockID != BLOCK_STONE || (rand() % 3) == 0) // if the block type is stone, update the noise value less often to get a stretched out look
                     gsd_tempA = 0xFF - (rand() % 0x60);
 
-                int tint = 0x966C4A; // brown (dirt)
+                uint32_t tint = 0x966C4A; // brown (dirt)
                 switch (blockID)
                 {
                 case BLOCK_STONE:
@@ -452,9 +438,9 @@ static void generateTextures()
                 }
                 case BLOCK_GRASS:
                 {
-                    if (y < ((x * x * 3 + x * 81) >> 2 & 0x3) + (int)(TEXTURE_RES * 1.125f)) // grass + grass edge
+                    if (y < ((x * x * 3 + x * 81) >> 2 & 0x3) + (uint32_t)(TEXTURE_RES * 1.125f)) // grass + grass edge
                         tint = 0x6AAA40; // green
-                    else if (y < ((x * x * 3 + x * 81) >> 2 & 0x3) + (int)(TEXTURE_RES * 1.1875f)) // grass edge shadow
+                    else if (y < ((x * x * 3 + x * 81) >> 2 & 0x3) + (uint32_t)(TEXTURE_RES * 1.1875f)) // grass edge shadow
                         gsd_tempA = gsd_tempA * 2 / 3;
                     break;
                 }
@@ -500,7 +486,7 @@ static void generateTextures()
                 }
                 }
 
-                int gsd_final = gsd_tempA;
+                uint32_t gsd_final = gsd_tempA;
                 if (y >= TEXTURE_RES * 2) // bottom side of the block
                     gsd_final /= 2; // make it darker, baked "shading"
 
@@ -513,7 +499,7 @@ static void generateTextures()
                 }
 
                 // multiply tint by the grayscale detail
-                const int col = ((tint & 0xFFFFFF) == 0 ? 0 : 0xFF) << 24 |
+                const uint32_t col = ((tint & 0xFFFFFF) == 0 ? 0 : 0xFF) << 24 |
                     (tint >> 16 & 0xFF) * gsd_final / 0xFF << 16 |
                     (tint >> 8 & 0xFF) * gsd_final / 0xFF << 8 |
                     (tint & 0xFF) * gsd_final / 0xFF << 0;
@@ -626,15 +612,15 @@ void _start() {
                 asm volatile("syscall");
                 asm volatile(".att_syntax prefix");
                 __builtin_unreachable();
-              case SDL_WINDOWEVENT:
-                if(event.window.event == SDL_WINDOWEVENT_RESIZED)
-                {
-                    SCR_WIDTH = event.window.data1;
-                    SCR_HEIGHT = event.window.data2;
+              // case SDL_WINDOWEVENT:
+              //   if(event.window.event == SDL_WINDOWEVENT_RESIZED)
+              //   {
+              //       // SCR_WIDTH = event.window.data1;
+              //       // SCR_HEIGHT = event.window.data2;
 
-                    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-                }
-                break;
+              //       glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+              //   }
+              //   break;
               case SDL_MOUSEBUTTONDOWN:
                 if(event.button.button == SDL_BUTTON_LEFT)
                     breakBlock();
