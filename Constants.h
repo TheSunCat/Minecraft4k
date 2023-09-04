@@ -15,6 +15,9 @@
 
 // END OF PERFORMANCE OPTIONS
 
+#define X 0
+#define Y 1
+#define Z 2
 
 #define BLOCK_AIR 0
 #define BLOCK_GRASS 1

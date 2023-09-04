@@ -42,7 +42,9 @@ static uint64_t currentTime()
     return sym_SDL_GetTicks64();
 }
 
-const int X = 0, Y = 1, Z = 2;
+#define X 0
+#define Y 1
+#define Z 2
 
 float my_sin(float x)
 {
@@ -381,7 +383,7 @@ static void on_render()
 // size: 154
 static void generateWorld()
 {
-    const float maxTerrainHeight = WORLD_HEIGHT / 2.0f;
+    const int maxTerrainHeight = WORLD_HEIGHT / 2;
 
     //long long seed = 18295169L;
 

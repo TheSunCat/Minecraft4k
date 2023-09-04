@@ -1,8 +1,10 @@
 DEBUG=false
 
-CFLAGS = -Os -fno-plt -fno-stack-protector -fno-stack-check -fno-unwind-tables -ffast-math \
+
+CFLAGS = -Os -Winline -Wall -Wextra \
+  -fno-plt -fno-stack-protector -fno-stack-check -fno-unwind-tables -ffast-math \
   -fno-asynchronous-unwind-tables -fomit-frame-pointer -fsingle-precision-constant -fno-pie -no-pie \
-  -fno-pic -fno-PIE -fno-PIC -march=nocona -ffunction-sections -fdata-sections -fno-plt \
+  -fno-pic -fno-PIE -fno-PIC -march=nocona -ffunction-sections -fdata-sections \
   -fmerge-all-constants -mno-fancy-math-387 -mno-ieee-fp -std=gnu11 -nostartfiles
 
 ifeq ($(DEBUG),false)
@@ -12,7 +14,7 @@ else
 	LDFLAGS += -g
 endif
 
-CFLAGS += -Wl,--gc-sections,--no-keep-memory,--no-export-dynamic,--orphan-handling=discard,-z,noseparate-code,-z,stack-size=0,--hash-style=gnu,-Tlinker.ld,-z,max-page-size=64,-nostdlib
+CFLAGS += -Wl,--gc-sections,--no-keep-memory,--no-export-dynamic,--orphan-handling=discard,-z,noseparate-code,-z,stack-size=0,--hash-style=gnu,-Tlinker.ld,-z,max-page-size=64,-nostdlib,--build-id=none
 #TODO ,--no-dynamic-linker
 
 .PHONY: clean checkgccversion noelfver
@@ -28,7 +30,7 @@ packer : vondehi/vondehi.asm
 shader.h : shader.frag Makefile
 	mono ./shader_minifier.exe --preserve-externals shader.frag -o shader.h
 
-Minecraft4k.elf : Minecraft4k.c shader.h Makefile
+Minecraft4k.elf : Minecraft4k.c shader.h linker.ld Makefile
 	gcc -o $@ $<  -lGL -ldl $(CFLAGS)
 
 Minecraft4k : Minecraft4k_opt.elf.packed
@@ -40,7 +42,7 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 	strip $@
 	strip -R .note.gnu.property -R .note.gnu.build-id -R .gnu.hash -R .gnu.version -R .fini -R .init_array -R .got -R .discard -R .eh_frame -R .got.plt -R .comment $@
 	./Section-Header-Stripper/section-stripper.py $@
-	sstrip $@
+	sstrip -z $@
 	./noelfver/noelfver $@ > $@.nover
 	mv $@.nover $@
 
@@ -59,6 +61,12 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 
 %.packed : %.xz packer Makefile
 	cat ./vondehi/vondehi $< > $@
+
+	# remove CRC32 (4 bytes)
+	truncate -s -4 $@
+	# truncate some more bytes (NOTE : unsafe, upon any segfaults just comment the next line)
+	truncate -s -4 $@
+
 	chmod +x $@
 	wc -c $@
 	cp Minecraft4k_opt.elf Minecraft4k_prepacked.elf

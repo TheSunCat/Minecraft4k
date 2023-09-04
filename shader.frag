@@ -48,7 +48,7 @@ void main()
     vec3 vInverted = abs(1 / rayDir);
 
     // The distance to the closest voxel boundary in units of rayTravelDist
-    vec3 dist = (-fract(P) * ijkStep + max(ijkStep, vec3(0))) * vInverted;
+    vec3 dist = (-fract(P) + max(ijkStep, vec3(0))) / rayDir;
 
     int axis; // X
 
@@ -79,11 +79,11 @@ void main()
         texFetch.x += int(texture(W, ijk.yxz / 64.).x * 350); // TODO this multiplier is wrong. Stone is never drawn?
 
         // TODO replace TEXTURE_RES
-        vec4 textureColor = texture(T, (trunc(texFetch * 16) + .5) / (16 * vec2(7, 3)));
+        vec4 textureColor = texture(T, (trunc(texFetch * 16) + .5) / 16 / vec2(7, 3));
 
         // highlight hovered block
         // multiply by 9 to make sure it's white
-        textureColor += int(ijk == b && length(step(vec2(7/16.), abs(fract(texFetch) - .5))) > 0) * 9;
+        textureColor += int(ijk == b && length(step(vec2(7 / 16.), abs(fract(texFetch) - .5))) > 0) * 9;
 
         if (length(textureColor) > 0) { // pixel is not transparent, so output color
             
@@ -112,3 +112,5 @@ void main()
 
     //Z = vec4(0);
 }
+
+// vim: set ft=glsl:
