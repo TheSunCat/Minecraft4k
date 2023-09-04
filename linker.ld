@@ -6,18 +6,26 @@ SEARCH_DIR("/usr/x86_64-pc-linux-gnu/lib64"); SEARCH_DIR("/usr/lib"); SEARCH_DIR
 
 SECTIONS
 {
+  PROVIDE (__executable_start = SEGMENT_START("text-segment", 0));
   . = SEGMENT_START("text-segment", 0x010000) + SIZEOF_HEADERS;
 
-  .interp         : { *(.interp) } /* address boundary error */
-  .gnu.hash       : { *(.gnu.hash) } /* could not find section */
-  .gnu.version    : { *(.gnu.version) *(.gnu.version_r) } /* could not find section */
-  .dynsym         : { *(.dynsym) } /* could not find section */
-  .dynstr         : { *(.dynstr) } /* address boundary error */
-  .rela.dyn       : { *(.rela.got) } /* Address boundary error */
+  .interp         : { *(.interp) }
+  .gnu.version    : { *(.gnu.hash) *(.gnu.version) *(.gnu.version_r) }
+  .dynstr         : { *(.dynstr) }
+  .rela.got       : { *(.rela.got) }
 
-  .text           : { *(.text.*) }
-  .rodata         : { *(.rodata.*) *(.data.*) } /* needed ?? */
-  .dynamic        : { *(.dynamic) } /* Address boundary error */
-  .got            : { *(.got) *(.got.plt) } /* segfault */
-  .bss            : { *(.bss.*) }/* needed ?? */
+  .text           : {
+      *(.text.*)
+      *(.rodata.*) *(.data.*)
+      *(.got) *(.got.plt)
+      *(.dynsym)
+  }
+
+  .dynamic        : { *(.dynamic) }
+  .bss            : { *(.bss.*) }
+
+  /DISCARD/       : {
+    *(.note.gnu.build-id)
+    *(.eh_frame)
+  }
 }
