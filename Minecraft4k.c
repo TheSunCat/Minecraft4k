@@ -72,14 +72,9 @@ uint32_t toIndex(uint32_t x, uint32_t y, uint32_t z)
     return y + x * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT;
 }
 
-// hacky workaround: remember block placed this frame so we can delete if colliding with
-uint32_t blockSetThisFrame = -1;
-
 static void setBlock(uint32_t x, uint32_t y, uint32_t z, uint8_t block)
 {
-    blockSetThisFrame = toIndex(x, y, z);
-
-    world[blockSetThisFrame] = block;
+    world[toIndex(x, y, z)] = block;
 
     // glBindTexture(GL_TEXTURE_3D, worldTex);
     glTexSubImage3D(GL_TEXTURE_3D,              // target
@@ -306,11 +301,6 @@ static void on_render()
                 const uint32_t colliderBlockPosY = newPlayerPosY + (colliderIndex/4 - 1) * 0.8f + 0.65f;
                 const uint32_t colliderBlockPosZ = newPlayerPosZ + (colliderIndex/2 % 2) * 0.6f - 0.3f;
 
-                // hacky: delete block if it was placed this frame to prevent getting stuck
-                const uint32_t colliderBlockIndex = toIndex(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ);
-                if(colliderBlockIndex == blockSetThisFrame)
-                    setBlock(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ, BLOCK_AIR);
-
                 // check collision with world bounds and blocks
                 if (!isWithinWorld(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ)
                     || getBlock(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ) != BLOCK_AIR) {
@@ -367,8 +357,6 @@ static void on_render()
 
     // render!
     glRecti(-1,-1,1,1);
-
-    blockSetThisFrame = -1;
 }
 
 // size: 154
