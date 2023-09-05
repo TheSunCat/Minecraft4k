@@ -342,19 +342,19 @@ static void on_render()
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
-    glUniform1i(glGetUniformLocation(shader, "T"), 1);
+    glUniform1i(SHADER_UNIFORM_T, 1);
 
     // glUniform2f(glGetUniformLocation(shader, "S"), SCR_WIDTH, SCR_HEIGHT);
     
-    glUniform1f(glGetUniformLocation(shader, "c"), cosYaw);
-    glUniform1f(glGetUniformLocation(shader, "d"), cosPitch);
-    glUniform1f(glGetUniformLocation(shader, "e"), sinYaw);
-    glUniform1f(glGetUniformLocation(shader, "g"), sinPitch);
-    glUniform2f(glGetUniformLocation(shader, "r"), (SCR_WIDTH * FOV) / 214.f, (SCR_HEIGHT * FOV) / 120.f);
-    glUniform3f(glGetUniformLocation(shader, "P"), playerPosX, playerPosY, playerPosZ);
+    glUniform1f(SHADER_UNIFORM_c, cosYaw);
+    glUniform1f(SHADER_UNIFORM_d, cosPitch);
+    glUniform1f(SHADER_UNIFORM_e, sinYaw);
+    glUniform1f(SHADER_UNIFORM_g, sinPitch);
+    glUniform2f(SHADER_UNIFORM_r, (SCR_WIDTH * FOV) / 214.f, (SCR_HEIGHT * FOV) / 120.f);
+    glUniform3f(SHADER_UNIFORM_P, playerPosX, playerPosY, playerPosZ);
 
-    glUniform3i(glGetUniformLocation(shader, "b"), hoverBlockX, hoverBlockY, hoverBlockZ);
-
+    glUniform3i(SHADER_UNIFORM_b, hoverBlockX, hoverBlockY, hoverBlockZ);
+ 
     // render!
     glRecti(-1,-1,1,1);
 }
