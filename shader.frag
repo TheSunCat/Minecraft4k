@@ -19,9 +19,10 @@ out vec4 Z;
 
 void main()
 {
-    Z = vec4(0, 0, 0, 1);
+    // Z = vec4(0);
 
-    vec2 centerDist = vec2(gl_FragCoord.x, 480 - gl_FragCoord.y) - vec2(428,240);
+    vec2 centerDist = gl_FragCoord.xy * vec2(1,-1) - vec2(428,-240);
+
     //vec2 absCenterDist = abs(centerDist);
     
     // draw crosshair
@@ -41,13 +42,12 @@ void main()
 
     vec3 ijk = ivec3(P);
 
-    // The amount to increase i, j and k in each axis (either 1 or -1)
+    // the amount to increase i, j and k in each axis (either 1 or -1)
     vec3 ijkStep = sign(rayDir);
 
-    // This variable is used to track the current progress throughout the ray march
     vec3 vInverted = abs(1 / rayDir);
 
-    // The distance to the closest voxel boundary in units of rayTravelDist
+    // the distance to the closest voxel boundary in units of rayTravelDist
     vec3 dist = (-fract(P) + max(ijkStep, vec3(0))) / rayDir;
 
     int axis; // X
@@ -76,9 +76,10 @@ void main()
 
         // get block from world
         // TODO replace WORLD_DIMENSIONS
-        texFetch.x += texture(W, ijk.yxz / 64.).x * 255;
+        texFetch.x += texture(W, ijk.yxz / 64).x * 0xFF;
 
         // TODO replace TEXTURE_RES
+        // TODO look into collapsing the last bit
         vec4 textureColor = texture(T, (trunc(texFetch * 16) + .5) / 16 / vec2(7, 3));
 
         // highlight hovered block
@@ -92,21 +93,18 @@ void main()
             return;
         }
 
-        // Determine the closest voxel boundary
-        if (dist.y < dist.x)
-            axis = 1 + int(dist.y > dist.z);
-        else
-            axis = 2 * int(dist.x > dist.z);
+        // determine the closest voxel boundary
+        axis = (dist.y < dist.x) ? 1 + int(dist.y > dist.z) : 2 * int(dist.x > dist.z);
 
-        // Advance to the closest voxel boundary in the axis direction
+        // advance to the closest voxel boundary in the axis direction
 
-        // Increment the chunk-relative position and the block access position
+        // increment the chunk-relative position and the block access position
         ijk[axis] += ijkStep[axis];
 
-        // Update our progress in the ray 
+        // update our progress in the ray 
         rayTravelDist = dist[axis];
 
-        // Set the new distance to the next voxel Y boundary
+        // set the new distance to the next voxel Y boundary
         dist[axis] += vInverted[axis];
     }
 
