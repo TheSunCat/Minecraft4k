@@ -31,7 +31,7 @@ shader.h : shader.frag Makefile
 	mono ./shader_minifier.exe --preserve-externals shader.frag -o shader.h
 
 Minecraft4k.elf : Minecraft4k.c shader.h linker.ld Makefile
-	gcc -o $@ $<  -lGL -ldl $(CFLAGS)
+	gcc -o $@ $< -ldl $(CFLAGS)
 
 Minecraft4k : Minecraft4k_opt.elf.packed
 	mv $< $@
@@ -52,7 +52,7 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 	sed -i 's/_end/\x00\x00\x00\x00/g' $@;
 	sed -i 's/GLIBC_2\.2\.5/\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00/g' $@;
 	sed -i 's/GLIBC_2\.34/\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00/g' $@;
-	sed -i 's/libc\.so\.6/\x00\x00\x00\x00\x00\x00\x00\x00\x00/g' $@;
+	# sed -i 's/libc\.so\.6/\x00\x00\x00\x00\x00\x00\x00\x00\x00/g' $@;
 
 	chmod +x $@
 	sstrip $@

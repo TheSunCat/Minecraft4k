@@ -32,6 +32,51 @@ typedef const Uint8*(*SDL_GetKeyboardState_t)(int*);
 SDL_GetTicks64_t sym_SDL_GetTicks64;
 SDL_GetKeyboardState_t sym_SDL_GetKeyboardState;
 
+// GL
+typedef GLuint(*glCreateShader_t)(GLenum);
+typedef void(*glShaderSource_t)(GLuint, GLsizei, const GLchar *const *, const GLint*);
+typedef void(*glCompileShader_t)(GLuint);
+typedef GLuint(*glCreateProgram_t)();
+typedef void(*glAttachShader_t)(GLuint, GLuint);
+typedef void(*glLinkProgram_t)(GLuint);
+typedef void(*glUseProgram_t)(GLuint);
+typedef void(*glGenTextures_t)(GLsizei,GLuint*);
+typedef void(*glBindTexture_t)(GLenum, GLuint);
+typedef void(*glTexParameteri_t)(GLenum, GLenum, GLint);
+typedef void(*glTexImage3D_t)(GLenum, GLint, GLint, GLsizei, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid *);
+typedef void(*glTexSubImage3D_t)(GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei, GLenum, GLenum, const GLvoid *);
+typedef void(*glTexImage2D_t)(GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid *);
+typedef void(*glActiveTexture_t)(GLenum);
+typedef void(*glUniform1i_t)(GLint, GLint);
+typedef void(*glUniform1f_t)(GLint, GLfloat);
+typedef void(*glUniform2f_t)(GLint, GLfloat, GLfloat);
+typedef void(*glUniform3f_t)(GLint, GLfloat, GLfloat, GLfloat);
+typedef void(*glUniform3i_t)(GLint, GLint, GLint, GLint);
+typedef void(*glRecti_t)(GLint, GLint, GLint, GLint);
+typedef void(*glEnable_t)(GLenum);
+
+glCreateShader_t sym_glCreateShader;
+glShaderSource_t sym_glShaderSource;
+glCompileShader_t sym_glCompileShader;
+glCreateProgram_t sym_glCreateProgram;
+glAttachShader_t sym_glAttachShader;
+glLinkProgram_t sym_glLinkProgram;
+glUseProgram_t sym_glUseProgram;
+glGenTextures_t sym_glGenTextures;
+glBindTexture_t sym_glBindTexture;
+glTexParameteri_t sym_glTexParameteri;
+glTexImage3D_t sym_glTexImage3D;
+glTexSubImage3D_t sym_glTexSubImage3D;
+glTexImage2D_t sym_glTexImage2D;
+glActiveTexture_t sym_glActiveTexture;
+glUniform1i_t sym_glUniform1i;
+glUniform1f_t sym_glUniform1f;
+glUniform2f_t sym_glUniform2f;
+glUniform3f_t sym_glUniform3f;
+glUniform3i_t sym_glUniform3i;
+glRecti_t sym_glRecti;
+glEnable_t sym_glEnable;
+
 // OpenGL IDs
 GLuint shader;
 GLuint worldTex;
@@ -77,7 +122,7 @@ static void setBlock(uint32_t x, uint32_t y, uint32_t z, uint8_t block)
     world[toIndex(x, y, z)] = block;
 
     // glBindTexture(GL_TEXTURE_3D, worldTex);
-    glTexSubImage3D(GL_TEXTURE_3D,              // target
+    sym_glTexSubImage3D(GL_TEXTURE_3D,              // target
         0,                                      // level
         y, x, z,                                // offset
         1, 1, 1,                                // size
@@ -337,26 +382,26 @@ static void on_render()
     
     // Compute the raytracing!
     //glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_3D, worldTex);
+    sym_glBindTexture(GL_TEXTURE_3D, worldTex);
     //glUniform1i(glGetUniformLocation(shader, "W"), 0); // textures are set to 0 by default... this is cursed
 
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
-    glUniform1i(SHADER_UNIFORM_T, 1);
+    sym_glActiveTexture(GL_TEXTURE1);
+    sym_glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
+    sym_glUniform1i(SHADER_UNIFORM_T, 1);
 
-    // glUniform2f(glGetUniformLocation(shader, "S"), SCR_WIDTH, SCR_HEIGHT);
+    // sym_glUniform2f(glGetUniformLocation(shader, "S"), SCR_WIDTH, SCR_HEIGHT);
     
-    glUniform1f(SHADER_UNIFORM_c, cosYaw);
-    glUniform1f(SHADER_UNIFORM_d, cosPitch);
-    glUniform1f(SHADER_UNIFORM_e, sinYaw);
-    glUniform1f(SHADER_UNIFORM_g, sinPitch);
-    glUniform2f(SHADER_UNIFORM_r, (SCR_WIDTH * FOV) / 214.f, (SCR_HEIGHT * FOV) / 120.f);
-    glUniform3f(SHADER_UNIFORM_P, playerPosX, playerPosY, playerPosZ);
+    sym_glUniform1f(SHADER_UNIFORM_c, cosYaw);
+    sym_glUniform1f(SHADER_UNIFORM_d, cosPitch);
+    sym_glUniform1f(SHADER_UNIFORM_e, sinYaw);
+    sym_glUniform1f(SHADER_UNIFORM_g, sinPitch);
+    sym_glUniform2f(SHADER_UNIFORM_r, (SCR_WIDTH * FOV) / 214.f, (SCR_HEIGHT * FOV) / 120.f);
+    sym_glUniform3f(SHADER_UNIFORM_P, playerPosX, playerPosY, playerPosZ);
 
-    glUniform3i(SHADER_UNIFORM_b, hoverBlockX, hoverBlockY, hoverBlockZ);
+    sym_glUniform3i(SHADER_UNIFORM_b, hoverBlockX, hoverBlockY, hoverBlockZ);
  
     // render!
-    glRecti(-1,-1,1,1);
+    sym_glRecti(-1,-1,1,1);
 }
 
 // size: 154
@@ -378,19 +423,19 @@ static void generateWorld()
     }
     
     // Upload world to GPU
-    glGenTextures(1, &worldTex);
-    glBindTexture(GL_TEXTURE_3D, worldTex);
+    sym_glGenTextures(1, &worldTex);
+    sym_glBindTexture(GL_TEXTURE_3D, worldTex);
 
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    sym_glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 #ifndef WORLD_WRAP
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+    sym_glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    sym_glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
 #endif
 
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    sym_glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    sym_glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glTexImage3D(GL_TEXTURE_3D,                 // target
+    sym_glTexImage3D(GL_TEXTURE_3D,                 // target
         0,                                      // level
         GL_RED,                                 // internal format
         WORLD_SIZE, WORLD_HEIGHT, WORLD_SIZE,   // size
@@ -499,28 +544,28 @@ static void generateTextures()
     }
 
     // upload texture atlas to GPU
-    glGenTextures(1, &textureAtlasTex);
-    glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
+    sym_glGenTextures(1, &textureAtlasTex);
+    sym_glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
 
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    sym_glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // sym_glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_RES * 7, TEXTURE_RES * 3, 0, GL_BGRA, GL_UNSIGNED_BYTE, textureAtlas);
+    sym_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_RES * 7, TEXTURE_RES * 3, 0, GL_BGRA, GL_UNSIGNED_BYTE, textureAtlas);
 }
 
 // size: 1471
 static void on_realize()
 {
-    glEnable(GL_TEXTURE_3D);
+    sym_glEnable(GL_TEXTURE_3D);
 
     // compile shader
-    GLuint f = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(f, 1, &shader_frag, NULL);
-    glCompileShader(f);
+    GLuint f = sym_glCreateShader(GL_FRAGMENT_SHADER);
+    sym_glShaderSource(f, 1, &shader_frag, NULL);
+    sym_glCompileShader(f);
 
-#ifdef DEBUG
+#ifdef DEBUG_GL
     GLint isCompiled = 0;
     glGetShaderiv(f, GL_COMPILE_STATUS, &isCompiled);
     if(isCompiled == GL_FALSE) {
@@ -534,11 +579,11 @@ static void on_realize()
 #endif
 
     // link shader
-    shader = glCreateProgram();
-    glAttachShader(shader, f);
-    glLinkProgram(shader);
+    shader = sym_glCreateProgram();
+    sym_glAttachShader(shader, f);
+    sym_glLinkProgram(shader);
 
-#ifdef DEBUG
+#ifdef DEBUG_GL
     GLint isLinked = 0;
     glGetProgramiv(shader, GL_LINK_STATUS, (int *)&isLinked);
     if (isLinked == GL_FALSE) {
@@ -551,7 +596,7 @@ static void on_realize()
     }
 #endif
 
-    glUseProgram(shader);
+    sym_glUseProgram(shader);
 
     // Game init
     generateWorld();
@@ -563,9 +608,12 @@ void _start() {
     asm volatile("sub $8, %rsp\n");
 
     // open libs we need
-    void *libSDL = dlopen("libSDL2.so", RTLD_LAZY);
+    void* libSDL = dlopen("libSDL2.so", RTLD_LAZY);
+    void* libGL  = dlopen("libGL.so", RTLD_NOW);
 
     // get all functions
+    
+    // SDL
     SDL_CreateWindow_t sym_SDL_CreateWindow = (SDL_CreateWindow_t)dlsym(libSDL, "SDL_CreateWindow");
     SDL_GL_CreateContext_t sym_SDL_GL_CreateContext = (SDL_GL_CreateContext_t)dlsym(libSDL, "SDL_GL_CreateContext");
     SDL_SetRelativeMouseMode_t sym_SDL_SetRelativeMouseMode = (SDL_SetRelativeMouseMode_t)dlsym(libSDL, "SDL_SetRelativeMouseMode");
@@ -573,6 +621,29 @@ void _start() {
     SDL_GL_SwapWindow_t sym_SDL_GL_SwapWindow = (SDL_GL_SwapWindow_t)dlsym(libSDL, "SDL_GL_SwapWindow");
     sym_SDL_GetTicks64 = (SDL_GetTicks64_t)dlsym(libSDL, "SDL_GetTicks64");
     sym_SDL_GetKeyboardState = (SDL_GetKeyboardState_t)dlsym(libSDL, "SDL_GetKeyboardState");
+  
+    // GL
+    sym_glCreateShader = (glCreateShader_t)dlsym(libGL, "glCreateShader");
+    sym_glShaderSource = (glShaderSource_t)dlsym(libGL, "glShaderSource");
+    sym_glCompileShader = (glCompileShader_t)dlsym(libGL, "glCompileShader");
+    sym_glCreateProgram = (glCreateProgram_t)dlsym(libGL, "glCreateProgram");
+    sym_glAttachShader = (glAttachShader_t)dlsym(libGL, "glAttachShader");
+    sym_glLinkProgram = (glLinkProgram_t)dlsym(libGL, "glLinkProgram");
+    sym_glUseProgram = (glUseProgram_t)dlsym(libGL, "glUseProgram");
+    sym_glGenTextures = (glGenTextures_t)dlsym(libGL, "glGenTextures");
+    sym_glBindTexture = (glBindTexture_t)dlsym(libGL, "glBindTexture");
+    sym_glTexParameteri = (glTexParameteri_t)dlsym(libGL, "glTexParameteri");
+    sym_glTexImage3D = (glTexImage3D_t)dlsym(libGL, "glTexImage3D");
+    sym_glTexSubImage3D = (glTexSubImage3D_t)dlsym(libGL, "glTexSubImage3D");
+    sym_glTexImage2D = (glTexImage2D_t)dlsym(libGL, "glTexImage2D");
+    sym_glActiveTexture = (glActiveTexture_t)dlsym(libGL, "glActiveTexture");
+    sym_glUniform1i = (glUniform1i_t)dlsym(libGL, "glUniform1i");
+    sym_glUniform1f = (glUniform1f_t)dlsym(libGL, "glUniform1f");
+    sym_glUniform2f = (glUniform2f_t)dlsym(libGL, "glUniform2f");
+    sym_glUniform3f = (glUniform3f_t)dlsym(libGL, "glUniform3f");
+    sym_glUniform3i = (glUniform3i_t)dlsym(libGL, "glUniform3i");
+    sym_glRecti = (glRecti_t)dlsym(libGL, "glRecti");
+    sym_glEnable = (glEnable_t)dlsym(libGL, "glEnable");
 
     // technically not needed
     //SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
@@ -606,7 +677,7 @@ void _start() {
               //       // SCR_WIDTH = event.window.data1;
               //       // SCR_HEIGHT = event.window.data2;
 
-              //       glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+              //       sym_glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
               //   }
               //   break;
               case SDL_MOUSEBUTTONDOWN:
