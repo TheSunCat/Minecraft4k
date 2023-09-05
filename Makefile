@@ -39,12 +39,11 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 #all the rest of these rules just takes a compiled elf file and generates a packed version of it with vondehi
 %_opt.elf : %.elf Makefile noelfver
 	cp $< $@
-	strip $@
 	strip -R .note.gnu.property -R .note.gnu.build-id -R .gnu.hash -R .gnu.version -R .fini -R .init_array -R .got -R .discard -R .eh_frame -R .got.plt -R .comment $@
-	./Section-Header-Stripper/section-stripper.py $@
+	# ./Section-Header-Stripper/section-stripper.py $@
 	sstrip -z $@
-	./noelfver/noelfver $@ > $@.nover
-	mv $@.nover $@
+	# ./noelfver/noelfver $@ > $@.nover
+	# mv $@.nover $@
 	
 	truncate -s -50 $@
 

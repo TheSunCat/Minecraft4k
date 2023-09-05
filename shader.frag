@@ -85,7 +85,7 @@ void main()
         // multiply by 9 to make sure it's white
         textureColor += int(ijk == b && length(step(vec2(.44), abs(fract(texFetch) - .5))) > 0) * 9;
 
-        if (length(textureColor) > 0) { // pixel is not transparent, so output color
+        if (textureColor.a > 0) { // pixel is not transparent, so output color
             
             // TODO replace RENDER_DIST
             Z += mix(textureColor, vec4(0), rayTravelDist / 20);

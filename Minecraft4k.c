@@ -1,18 +1,11 @@
-#define GL_GLEXT_PROTOTYPES
-
 #include <dlfcn.h>
 
 #include <stdio.h>
 #include <stdbool.h>
-#include <stdlib.h>
-#include <math.h>
 
 #include <SDL2/SDL.h>
 
 #include <GL/gl.h>
-#include <GL/glx.h>
-#include <GL/glu.h>
-#include <GL/glext.h>
 
 #include "shader.h"
 
@@ -26,10 +19,8 @@ typedef SDL_GLContext(*SDL_GL_CreateContext_t)(SDL_Window*);
 typedef int(*SDL_SetRelativeMouseMode_t)(SDL_bool);
 typedef int(*SDL_PollEvent_t)(SDL_Event*);
 typedef void(*SDL_GL_SwapWindow_t)(SDL_Window*);
-typedef Uint64(*SDL_GetTicks64_t)(void);
 typedef const Uint8*(*SDL_GetKeyboardState_t)(int*);
 
-SDL_GetTicks64_t sym_SDL_GetTicks64;
 SDL_GetKeyboardState_t sym_SDL_GetKeyboardState;
 
 // GL
@@ -82,15 +73,11 @@ GLuint shader;
 GLuint worldTex;
 GLuint textureAtlasTex;
 
-static uint64_t currentTime()
-{
-    return sym_SDL_GetTicks64();
-}
-
 #define X 0
 #define Y 1
 #define Z 2
 
+// size: 352
 float my_sin(float x)
 {
     float sine;
@@ -105,6 +92,7 @@ float my_sin(float x)
     return sine;
 }
 
+// size: 128
 static float my_cos(float x)
 {
     return my_sin(x + M_PI / 2.0f);
@@ -112,11 +100,13 @@ static float my_cos(float x)
 
 uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
 
+// size: 32
 uint32_t toIndex(uint32_t x, uint32_t y, uint32_t z)
 {
     return y + x * WORLD_SIZE + z * WORLD_SIZE * WORLD_HEIGHT;
 }
 
+// size: 160
 static void setBlock(uint32_t x, uint32_t y, uint32_t z, uint8_t block)
 {
     world[toIndex(x, y, z)] = block;
@@ -131,11 +121,13 @@ static void setBlock(uint32_t x, uint32_t y, uint32_t z, uint8_t block)
         &block);                                // data
 }
 
+// size: 96
 uint8_t getBlock(uint32_t x, uint32_t y, uint32_t z)
 {
     return world[toIndex(x, y, z)];
 }
 
+// size: 64
 bool isWithinWorld(uint32_t x, uint32_t y, uint32_t z)
 {
     return (x < WORLD_SIZE) & (y < WORLD_HEIGHT) & (z < WORLD_SIZE);
@@ -144,11 +136,13 @@ bool isWithinWorld(uint32_t x, uint32_t y, uint32_t z)
 uint32_t hoverBlockX = 0, hoverBlockY = 0, hoverBlockZ = 0;
 uint32_t placeBlockX = 0, placeBlockY = 0, placeBlockZ = 0;
 
+// size: 32
 static void breakBlock()
 {
     setBlock(hoverBlockX, hoverBlockY, hoverBlockZ, BLOCK_AIR);
 }
 
+// size: 32
 static void placeBlock(uint8_t block)
 {
     setBlock(placeBlockX, placeBlockY, placeBlockZ, block);
@@ -166,13 +160,13 @@ float playerVelocityX = 0, playerVelocityY = 0, playerVelocityZ = 0;
 // spawn player at world center
 float playerPosX = WORLD_SIZE / 2.0f + 0.5f, playerPosY = 1, playerPosZ = WORLD_SIZE / 2.0f + 0.5f;
 
-// size: 4
+// size: 64
 float my_fract(float x)
 {
     return x - (float)((int) x);
 }
 
-// size: 10
+// size: 240
 int8_t my_sign(float x)
 {
     if(x < 0)
@@ -180,7 +174,7 @@ int8_t my_sign(float x)
     return 1;
 }
 
-// size: 415!!
+// size: 520
 static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPitch)
 {
     // rotate frustum space to world space
@@ -287,26 +281,15 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
 
 const uint8_t* kb = NULL;
 
-// size: 505!!
+// size: 32
 static void updateController()
 {
     kb = sym_SDL_GetKeyboardState(NULL);
 }
 
-uint64_t lastFrameTime = 0;
-uint64_t lastUpdateTime = 0;
-
-// size: 1611
+// size: 1488
 static void on_render()
 {
-    const uint64_t frameTime = currentTime();
-    if(lastFrameTime == 0)
-    {
-        lastUpdateTime = frameTime;
-    }
-
-    lastFrameTime = frameTime;
-
     const float sinYaw = my_sin(cameraYaw);
     const float cosYaw = my_cos(cameraYaw);
     const float sinPitch = my_sin(cameraPitch);
@@ -318,7 +301,6 @@ static void on_render()
     updateController();
   
     // calculate physics
-    // while (currentTime() - lastUpdateTime > 10)
     {
         const float inputX = (-kb[SDL_SCANCODE_A] + kb[SDL_SCANCODE_D]) * 0.02f;
         const float inputZ = (-kb[SDL_SCANCODE_S] + kb[SDL_SCANCODE_W]) * 0.02f;
@@ -374,12 +356,8 @@ static void on_render()
                 playerPosZ = newPlayerPosZ;
             }
         }
-
-        lastUpdateTime += 10;
     }
 
-    // size: 333!!
-    
     // Compute the raytracing!
     //glActiveTexture(GL_TEXTURE0);
     sym_glBindTexture(GL_TEXTURE_3D, worldTex);
@@ -404,7 +382,7 @@ static void on_render()
     sym_glRecti(-1,-1,1,1);
 }
 
-// size: 154
+// size: 224
 static void generateWorld()
 {
     const uint8_t maxTerrainHeight = WORLD_HEIGHT / 2;
@@ -447,19 +425,19 @@ static void generateWorld()
 
 uint32_t textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 7];
 
-// size: 624!!
+// size: 672
 static void generateTextures()
 {
     // gsd = grayscale detail
     for (uint32_t blockID = 1; blockID < 7; ++blockID) {
-        uint32_t gsd_tempA = 0xFF - (rand() % 0x60);
+        uint32_t brightness = 0xFF - (rand() % 0x60);
 
         for (uint32_t y = 0; y < TEXTURE_RES * 3; ++y) {
             for (uint32_t x = 0; x < TEXTURE_RES; ++x) {
                 // gets executed per pixel/texel
 
-                if (blockID != BLOCK_STONE || (rand() % 3) == 0) // if the block type is stone, update the noise value less often to get a stretched out look
-                    gsd_tempA = 0xFF - (rand() % 0x60);
+                if (blockID != BLOCK_STONE | (rand() % 3) == 0) // if the block type is stone, update the noise value less often to get a stretched out look
+                    brightness = 0xFF - (rand() % 0x60);
 
                 uint32_t tint = 0x966C4A; // brown (dirt)
                 switch (blockID)
@@ -474,7 +452,7 @@ static void generateTextures()
                     if (y < ((x * x * 3 + x * 81) >> 2 & 0x3) + (uint32_t)(TEXTURE_RES * 1.125f)) // grass + grass edge
                         tint = 0x6AAA40; // green
                     else if (y < ((x * x * 3 + x * 81) >> 2 & 0x3) + (uint32_t)(TEXTURE_RES * 1.1875f)) // grass edge shadow
-                        gsd_tempA = gsd_tempA * 2 / 3;
+                        brightness = brightness * 2 / 3;
                     break;
                 }
                 case BLOCK_WOOD:
@@ -486,10 +464,10 @@ static void generateTextures()
                         tint = 0xBC9862; // light brown
 
                         // make the gray scale detail darker if the current pixel is part of an annual ring
-                        int woodCenter = TEXTURE_RES / 2 - 1;
+                        uint8_t woodCenter = TEXTURE_RES / 2 - 1;
 
-                        int dx = x - woodCenter;
-                        int dy = (y % TEXTURE_RES) - woodCenter;
+                        int8_t dx = x - woodCenter;
+                        int8_t dy = (y % TEXTURE_RES) - woodCenter;
 
                         if (dx < 0)
                             dx = 1 - dx;
@@ -501,12 +479,12 @@ static void generateTextures()
                             dx = dy;
 
                         // add some noise as a finishing touch
-                        gsd_tempA = 196 - (rand() % 32) + dx % 3 * 32;
+                        brightness = 196 - (rand() % 32) + dx % 3 * 32;
                     }
                     else if ((rand() % 2) == 0) {
                         // make the gsd 50% brighter on random pixels of the bark
                         // and 50% darker if x happens to be odd
-                        gsd_tempA = gsd_tempA * (150 - (x & 1) * 100) / 100;
+                        brightness = brightness * (150 - (x & 1) * 100) / 100;
                     }
                     break;
                 }
@@ -517,25 +495,18 @@ static void generateTextures()
                         tint = 0xBCAFA5; // reddish light grey
                     break;
                 }
+                case BLOCK_LEAVES:
+                    tint = 0x50D937 * (rand() % 2); // green
                 }
 
-                uint32_t gsd_final = gsd_tempA;
                 if (y >= TEXTURE_RES * 2) // bottom side of the block
-                    gsd_final /= 2; // make it darker, baked "shading"
-
-                if (blockID == BLOCK_LEAVES) {
-                    tint = 0x50D937; // green
-                    if ((rand() % 2) == 0) {
-                        tint = 0;
-                        gsd_final = 0xFF;
-                    }
-                }
+                    brightness /= 2; // make it darker, baked "shading"
 
                 // multiply tint by the grayscale detail
-                const uint32_t col = ((tint & 0xFFFFFF) == 0 ? 0 : 0xFF) << 24 |
-                    (tint >> 16 & 0xFF) * gsd_final / 0xFF << 16 |
-                    (tint >> 8 & 0xFF) * gsd_final / 0xFF << 8 |
-                    (tint & 0xFF) * gsd_final / 0xFF << 0;
+                const uint32_t col = (tint) << 24 |
+                    (tint >> 16 & 0xFF) * brightness / 0xFF << 16 |
+                    (tint >> 8 & 0xFF) * brightness  / 0xFF << 8 |
+                    (tint & 0xFF) * brightness       / 0xFF << 0;
 
                 // write pixel to the texture atlas
                 textureAtlas[x + (TEXTURE_RES * blockID) + y * (TEXTURE_RES * 7)] = col;
@@ -555,7 +526,7 @@ static void generateTextures()
     sym_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_RES * 7, TEXTURE_RES * 3, 0, GL_BGRA, GL_UNSIGNED_BYTE, textureAtlas);
 }
 
-// size: 1471
+// size: 1832
 static void on_realize()
 {
     sym_glEnable(GL_TEXTURE_3D);
@@ -619,7 +590,6 @@ void _start() {
     SDL_SetRelativeMouseMode_t sym_SDL_SetRelativeMouseMode = (SDL_SetRelativeMouseMode_t)dlsym(libSDL, "SDL_SetRelativeMouseMode");
     SDL_PollEvent_t sym_SDL_PollEvent = (SDL_PollEvent_t)dlsym(libSDL, "SDL_PollEvent");
     SDL_GL_SwapWindow_t sym_SDL_GL_SwapWindow = (SDL_GL_SwapWindow_t)dlsym(libSDL, "SDL_GL_SwapWindow");
-    sym_SDL_GetTicks64 = (SDL_GetTicks64_t)dlsym(libSDL, "SDL_GetTicks64");
     sym_SDL_GetKeyboardState = (SDL_GetKeyboardState_t)dlsym(libSDL, "SDL_GetKeyboardState");
   
     // GL
