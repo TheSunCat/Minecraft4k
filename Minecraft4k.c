@@ -188,9 +188,9 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
     const int8_t jStep = my_sign(rayDirY);
     const int8_t kStep = my_sign(rayDirZ);
 
-    const float vInvertedX = fabs(1/rayDirX);
-    const float vInvertedY = fabs(1/rayDirY);
-    const float vInvertedZ = fabs(1/rayDirZ);
+    const float vInvertedX = 1.f / fabs(rayDirX);
+    const float vInvertedY = 1.f / fabs(rayDirY);
+    const float vInvertedZ = 1.f / fabs(rayDirZ);
 
     float distX = -my_fract(playerPosX) * iStep;
     float distY = -my_fract(playerPosY) * jStep;
@@ -212,18 +212,14 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
 
         if(blockHit != BLOCK_AIR)
         {
-            hoverBlockX = i; hoverBlockY = j; hoverBlockZ = k;
-            placeBlockX = i; placeBlockY = j; placeBlockZ = k;
-            switch(axis) {
-            case X:
-                placeBlockX -= my_sign(rayDirX);
-                break;
-            case Y:
-                placeBlockY -= my_sign(rayDirY);
-                break;
-            case Z:
-                placeBlockZ -= my_sign(rayDirZ);
-            }
+            hoverBlockX = i;
+            hoverBlockY = j;
+            hoverBlockZ = k;
+
+            placeBlockX = i - (axis == X) * iStep;
+            placeBlockY = j - (axis == Y) * jStep;
+            placeBlockZ = k - (axis == Z) * kStep;
+
             return;
         }
 
@@ -316,42 +312,37 @@ static void on_render()
             bool moveValid = true;
 
             // TODO implement WORLD_WRAP
-            const float newPlayerPosX = playerPosX + playerVelocityX * (axis == X);
-            const float newPlayerPosY = playerPosY + playerVelocityY * (axis == Y);
-            const float newPlayerPosZ = playerPosZ + playerVelocityZ * (axis == Z);
+            const float newPlayerPos[3] = {
+                playerPosX + playerVelocityX * (axis == X),
+                playerPosY + playerVelocityY * (axis == Y),
+                playerPosZ + playerVelocityZ * (axis == Z)
+            };
 
             for (int colliderIndex = 0; colliderIndex < 12; ++colliderIndex) {
-                // magic
-                const uint32_t colliderBlockPosX = newPlayerPosX + (colliderIndex   % 2) * 0.6f - 0.3f;
-                const uint32_t colliderBlockPosY = newPlayerPosY + (colliderIndex/4 - 1) * 0.8f + 0.65f;
-                const uint32_t colliderBlockPosZ = newPlayerPosZ + (colliderIndex/2 % 2) * 0.6f - 0.3f;
+                const float colliderBlockPos[3] = {
+                    newPlayerPos[0] + (colliderIndex % 2) * 0.6f - 0.3f,
+                    newPlayerPos[1] + (colliderIndex / 4 - 1) * 0.8f + 0.65f,
+                    newPlayerPos[2] + (colliderIndex / 2 % 2) * 0.6f - 0.3f
+                };
 
-                // check collision with world bounds and blocks
-                if (!isWithinWorld(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ)
-                    || getBlock(colliderBlockPosX, colliderBlockPosY, colliderBlockPosZ) != BLOCK_AIR) {
-
-                    if (axis == Y)
-                    {
-                        // if we're falling, colliding, and we press space
-                        if ((kb[SDL_SCANCODE_SPACE]) && playerVelocityY > 0.0f) {
-
+                if (!isWithinWorld(colliderBlockPos[0], colliderBlockPos[1], colliderBlockPos[2]) ||
+                    getBlock(colliderBlockPos[0], colliderBlockPos[1], colliderBlockPos[2]) != BLOCK_AIR) {
+                    if (axis == 1) {
+                        if (kb[SDL_SCANCODE_SPACE] && playerVelocityY > 0.0f) {
                             playerVelocityY = -0.1f; // jump
-                        }
-                        else { // we're on the ground, not jumping
-
+                        } else {
                             playerVelocityY = 0.0f; // prevent accelerating downwards infinitely
                         }
                     }
-
                     moveValid = false;
                     break;
                 }
             }
 
             if (moveValid) {
-                playerPosX = newPlayerPosX;
-                playerPosY = newPlayerPosY;
-                playerPosZ = newPlayerPosZ;
+                playerPosX = newPlayerPos[0];
+                playerPosY = newPlayerPos[1];
+                playerPosZ = newPlayerPos[2];
             }
         }
     }
