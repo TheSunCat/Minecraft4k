@@ -5,7 +5,7 @@ CFLAGS = -Os -Winline -Wall -Wextra \
   -fno-plt -fno-stack-protector -fno-stack-check -fno-unwind-tables -ffast-math \
   -fno-asynchronous-unwind-tables -fomit-frame-pointer -fsingle-precision-constant -fno-pie -no-pie \
   -fno-pic -fno-PIE -fno-PIC -march=nocona -ffunction-sections -fdata-sections \
-  -fmerge-all-constants -mno-fancy-math-387 -mno-ieee-fp -std=gnu11 -nostartfiles
+  -fmerge-all-constants -mno-fancy-math-387 -mno-ieee-fp -std=gnu11 -nostartfiles  -m32
 
 ifeq ($(DEBUG),false)
 	CFLAGS += #-nostdlib # needed for rand()
@@ -14,8 +14,8 @@ else
 	LDFLAGS += -g
 endif
 
-CFLAGS += -Wl,--gc-sections,--no-keep-memory,--no-export-dynamic,--orphan-handling=discard,-z,noseparate-code,-z,stack-size=0,--hash-style=gnu,-Tlinker.ld,-z,max-page-size=64,-nostdlib,--build-id=none
-#TODO ,--no-dynamic-linker
+CFLAGS += -Wl,--gc-sections,--no-keep-memory,--no-export-dynamic,--orphan-handling=discard,-z,noseparate-code,-z,stack-size=0,--hash-style=gnu,-z,max-page-size=64,-nostdlib,--build-id=none
+#TODO ,--no-dynamic-linker,-Tlinker.ld
 
 .PHONY: clean checkgccversion noelfver
 
@@ -40,8 +40,12 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 %_opt.elf : %.elf Makefile noelfver
 	cp $< $@
 	strip $@
+
+	# this might crash, comment out if segfaulting
 	strip -R .note.gnu.property -R .note.gnu.build-id -R .gnu.hash -R .gnu.version -R .fini -R .init_array -R .got -R .discard -R .eh_frame -R .got.plt -R .comment $@
-	./Section-Header-Stripper/section-stripper.py $@
+
+# commented out as it only supports 64-bit :(
+	#./Section-Header-Stripper/section-stripper.py $@
 	sstrip -z $@
 	./noelfver/noelfver $@ > $@.nover
 	mv $@.nover $@

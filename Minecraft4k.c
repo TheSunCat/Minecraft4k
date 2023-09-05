@@ -560,7 +560,7 @@ static void on_realize()
 }
 
 void _start() {
-    asm volatile("sub $8, %rsp\n");
+    asm volatile("sub $8, %esp\n");
 
     // open libs we need
     void *libSDL = dlopen("libSDL2.so", RTLD_LAZY);
@@ -595,7 +595,7 @@ void _start() {
                 // TODO why not return;
                 asm volatile(".intel_syntax noprefix");
                 asm volatile("push 231"); //exit_group
-                asm volatile("pop rax");
+                asm volatile("pop eax");
                 asm volatile("xor edi, edi");
                 asm volatile("syscall");
                 asm volatile(".att_syntax prefix");
