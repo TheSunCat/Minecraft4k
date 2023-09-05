@@ -44,7 +44,6 @@ typedef void(*glUniform2f_t)(GLint, GLfloat, GLfloat);
 typedef void(*glUniform3f_t)(GLint, GLfloat, GLfloat, GLfloat);
 typedef void(*glUniform3i_t)(GLint, GLint, GLint, GLint);
 typedef void(*glRecti_t)(GLint, GLint, GLint, GLint);
-typedef void(*glEnable_t)(GLenum);
 
 glCreateShader_t sym_glCreateShader;
 glShaderSource_t sym_glShaderSource;
@@ -66,7 +65,6 @@ glUniform2f_t sym_glUniform2f;
 glUniform3f_t sym_glUniform3f;
 glUniform3i_t sym_glUniform3i;
 glRecti_t sym_glRecti;
-glEnable_t sym_glEnable;
 
 // OpenGL IDs
 GLuint shader;
@@ -428,7 +426,6 @@ uint32_t textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 7];
 // size: 672
 static void generateTextures()
 {
-    // gsd = grayscale detail
     for (uint32_t blockID = 1; blockID < 7; ++blockID) {
         uint32_t brightness = 0xFF - (rand() % 0x60);
 
@@ -436,7 +433,8 @@ static void generateTextures()
             for (uint32_t x = 0; x < TEXTURE_RES; ++x) {
                 // gets executed per pixel/texel
 
-                if (blockID != BLOCK_STONE | (rand() % 3) == 0) // if the block type is stone, update the noise value less often to get a stretched out look
+                // if the block type is stone, update the noise value less often to get a stretched out look
+                if ((blockID != BLOCK_STONE) | ((rand() % 3) == 0))
                     brightness = 0xFF - (rand() % 0x60);
 
                 uint32_t tint = 0x966C4A; // brown (dirt)
@@ -449,41 +447,30 @@ static void generateTextures()
                 }
                 case BLOCK_GRASS:
                 {
-                    if (y < ((x * x * 3 + x * 81) >> 2 & 0x3) + (uint32_t)(TEXTURE_RES * 1.125f)) // grass + grass edge
+                    uint32_t grassThreshold = ((x * x * 3 + x * 81) >> 2 & 0x3) + (uint32_t)(TEXTURE_RES * 1.125f);
+
+                    if (y < grassThreshold) {
                         tint = 0x6AAA40; // green
-                    else if (y < ((x * x * 3 + x * 81) >> 2 & 0x3) + (uint32_t)(TEXTURE_RES * 1.1875f)) // grass edge shadow
+                    } else if (y < (grassThreshold + (uint32_t)(TEXTURE_RES * 0.0625f))) {
                         brightness = brightness * 2 / 3;
+                    }
                     break;
                 }
                 case BLOCK_WOOD:
                 {
-                    tint = 0x675231; // brown (bark)
-                    if (!(y >= TEXTURE_RES && y < TEXTURE_RES * 2) && // second row = stripes
-                        x > 0 && x < TEXTURE_RES - 1 &&
-                        ((y > 0 && y < TEXTURE_RES - 1) || (y > TEXTURE_RES * 2 && y < TEXTURE_RES * 3 - 1))) { // wood side area
-                        tint = 0xBC9862; // light brown
+                    bool isWoodSide = !(y >= TEXTURE_RES && y < TEXTURE_RES * 2) &&
+                                      x > 0 && x < TEXTURE_RES - 1 &&
+                                      ((y > 0 && y < TEXTURE_RES - 1) || (y > TEXTURE_RES * 2 && y < TEXTURE_RES * 3 - 1));
 
-                        // make the gray scale detail darker if the current pixel is part of an annual ring
+                    tint = isWoodSide ? 0xBC9862 : 0x675231;
+
+                    if (isWoodSide) {
                         uint8_t woodCenter = TEXTURE_RES / 2 - 1;
-
-                        int8_t dx = x - woodCenter;
-                        int8_t dy = (y % TEXTURE_RES) - woodCenter;
-
-                        if (dx < 0)
-                            dx = 1 - dx;
-
-                        if (dy < 0)
-                            dy = 1 - dy;
-
-                        if (dy > dx)
-                            dx = dy;
-
-                        // add some noise as a finishing touch
+                        int8_t dx = abs(x - woodCenter);
+                        int8_t dy = abs((y % TEXTURE_RES) - woodCenter);
+                        dx = (dy > dx) ? dy : dx;
                         brightness = 196 - (rand() % 32) + dx % 3 * 32;
-                    }
-                    else if ((rand() % 2) == 0) {
-                        // make the gsd 50% brighter on random pixels of the bark
-                        // and 50% darker if x happens to be odd
+                    } else if (rand() % 2) {
                         brightness = brightness * (150 - (x & 1) * 100) / 100;
                     }
                     break;
@@ -529,7 +516,7 @@ static void generateTextures()
 // size: 1832
 static void on_realize()
 {
-    sym_glEnable(GL_TEXTURE_3D);
+    // sym_glEnable(GL_TEXTURE_3D);
 
     // compile shader
     GLuint f = sym_glCreateShader(GL_FRAGMENT_SHADER);
@@ -613,7 +600,6 @@ void _start() {
     sym_glUniform3f = (glUniform3f_t)dlsym(libGL, "glUniform3f");
     sym_glUniform3i = (glUniform3i_t)dlsym(libGL, "glUniform3i");
     sym_glRecti = (glRecti_t)dlsym(libGL, "glRecti");
-    sym_glEnable = (glEnable_t)dlsym(libGL, "glEnable");
 
     // technically not needed
     //SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);

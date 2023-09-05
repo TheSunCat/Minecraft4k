@@ -42,7 +42,7 @@ void main()
     vec3 ijk = ivec3(P);
 
     // The amount to increase i, j and k in each axis (either 1 or -1)
-    ivec3 ijkStep = ivec3(sign(rayDir));
+    vec3 ijkStep = sign(rayDir);
 
     // This variable is used to track the current progress throughout the ray march
     vec3 vInverted = abs(1 / rayDir);
