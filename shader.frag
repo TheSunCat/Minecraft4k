@@ -2,7 +2,7 @@
 
 // camera stuff
 uniform float c, d, e, g; // cosYaw, cosPitch, sinYaw, sinPitch
-uniform vec2 r;     // frustumDiv, SCREEN_SIZE
+uniform vec2 r;     // frustumDiv
 uniform vec3 P;     // Position
 
 // world (texture 0)
@@ -21,7 +21,7 @@ void main()
 {
     // Z = vec4(0);
 
-    vec2 centerDist = gl_FragCoord.xy * vec2(1,-1) - vec2(428,-240);
+    // vec2 centerDist = gl_FragCoord.xy * vec2(1,-1) - vec2(428,-240);
 
     //vec2 absCenterDist = abs(centerDist);
     
@@ -29,14 +29,12 @@ void main()
     // if(length(step(abs(centerDist), vec2(2)) + step(abs(centerDist), vec2(10))) > 2)
     //     Z += 1;
 
-    vec2 frustumRay = centerDist / r;
+    // vec2 frustumRay = centerDist / r;
 
     // rotate frustum space to world space
-    float temp = d + frustumRay.y * g;
-
-    vec3 rayDir = vec3(frustumRay.x * c + temp * e,
-                       frustumRay.y * d - g,
-                       temp * c - frustumRay.x * e);
+    vec3 rayDir = vec3((gl_FragCoord.x - 428) / r.x * c + (d + (-gl_FragCoord.y + 240) / r.y * g) * e,
+                       (-gl_FragCoord.y + 240) / r.y * d - g,
+                       (d + (-gl_FragCoord.y + 240) / r.y * g) * c - (gl_FragCoord.x - 428) / r.x * e);
 
     // raymarch outputs
 
@@ -83,8 +81,7 @@ void main()
 
         // highlight hovered block
         // multiply by 9 to make sure it's white
-        vec2 blockCenterDist = abs(fract(texFetch) - .5);
-        textureColor += int(ijk == b && max(blockCenterDist.x, blockCenterDist.y) > .44) * 9;
+        textureColor += int(ijk == b && max(abs(fract(texFetch) - .5).x, abs(fract(texFetch) - .5).y) > .44) * 9;
 
         if (textureColor.a > 0) { // pixel is not transparent, so output color
             
