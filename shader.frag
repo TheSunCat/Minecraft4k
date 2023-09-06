@@ -79,12 +79,12 @@ void main()
         texFetch.x += texture(W, ijk.yxz / 64).x * 0xFF;
 
         // TODO replace TEXTURE_RES
-        // TODO look into collapsing the last bit
-        vec4 textureColor = texture(T, (trunc(texFetch * 16) + .5) / 16 / vec2(7, 3));
+        vec4 textureColor = texture(T, (trunc(texFetch * 16) + .5) / vec2(112, 48));
 
         // highlight hovered block
         // multiply by 9 to make sure it's white
-        textureColor += int(ijk == b && length(step(vec2(.44), abs(fract(texFetch) - .5))) > 0) * 9;
+        vec2 blockCenterDist = abs(fract(texFetch) - .5);
+        textureColor += int(ijk == b && max(blockCenterDist.x, blockCenterDist.y) > .44) * 9;
 
         if (textureColor.a > 0) { // pixel is not transparent, so output color
             
@@ -98,7 +98,7 @@ void main()
 
         // advance to the closest voxel boundary in the axis direction
 
-        // increment the chunk-relative position and the block access position
+        // increment the block access position
         ijk[axis] += ijkStep[axis];
 
         // update our progress in the ray 
