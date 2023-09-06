@@ -91,7 +91,7 @@ float my_sin(float x)
 }
 
 // size: 128
-static float my_cos(float x)
+float my_cos(float x)
 {
     return my_sin(x + M_PI / 2.0f);
 }
@@ -105,7 +105,7 @@ uint32_t toIndex(uint32_t x, uint32_t y, uint32_t z)
 }
 
 // size: 160
-static void setBlock(uint32_t x, uint32_t y, uint32_t z, uint8_t block)
+void setBlock(uint32_t x, uint32_t y, uint32_t z, uint8_t block)
 {
     world[toIndex(x, y, z)] = block;
 
