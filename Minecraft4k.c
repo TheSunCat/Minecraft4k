@@ -140,7 +140,7 @@ uint8_t getBlock(uint32_t x, uint32_t y, uint32_t z)
 // size: 64
 bool isWithinWorld(uint32_t x, uint32_t y, uint32_t z)
 {
-    return (x < WORLD_SIZE) & (y < WORLD_HEIGHT) & (z < WORLD_SIZE);
+    return (x | y | z) < WORLD_SIZE;
 }
 
 uint32_t hoverBlockX = 0, hoverBlockY = 0, hoverBlockZ = 0;
@@ -159,8 +159,8 @@ static void placeBlock(uint8_t block)
 }
 
 SDL_Window* window;
-const uint32_t SCR_WIDTH = SCR_WIDTH_DEFAULT * (1 << SCR_DETAIL);
-const uint32_t SCR_HEIGHT = SCR_HEIGHT_DEFAULT * (1 << SCR_DETAIL);
+const uint16_t SCR_WIDTH = SCR_WIDTH_DEFAULT * (1 << SCR_DETAIL);
+const uint16_t SCR_HEIGHT = SCR_HEIGHT_DEFAULT * (1 << SCR_DETAIL);
 
 float cameraPitch = 0;
 float cameraYaw = 0;
