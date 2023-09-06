@@ -235,20 +235,19 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
             return;
         }
 
-        // Determine the closest voxel boundary
+        // determine the closest voxel boundary
         if (distY < distX)
         {
             if (distY < distZ)
             {
                 axis = Y;
-                // Advance to the closest voxel boundary in the Y direction
-                // Increment the chunk-relative position and the block access position
+                // increment the block access position
                 j += jStep;
 
-                // Update our progress in the ray 
+                // advance to the closest voxel boundary in the Y direction
                 rayTravelDist = distY;
 
-                // Set the new distance to the next voxel Y boundary
+                // set the new distance to the next voxel Y boundary
                 distY += vInvertedY;
             }
             else
@@ -461,13 +460,13 @@ static void generateTextures()
                 }
                 case BLOCK_WOOD:
                 {
-                    bool isWoodSide = !(y >= TEXTURE_RES && y < TEXTURE_RES * 2) &&
-                                      x > 0 && x < TEXTURE_RES - 1 &&
-                                      ((y > 0 && y < TEXTURE_RES - 1) || (y > TEXTURE_RES * 2 && y < TEXTURE_RES * 3 - 1));
+                    bool isWoodCap = ((y < TEXTURE_RES) | (y >= TEXTURE_RES * 2)) &
+                                      (x > 0) & (x < TEXTURE_RES - 1) &&
+                                      ((y > 0 && y < TEXTURE_RES - 1) | (y > TEXTURE_RES * 2 && y < TEXTURE_RES * 3 - 1));
 
-                    tint = isWoodSide ? 0xBC9862 : 0x675231;
+                    tint = isWoodCap ? 0xBC9862 : 0x675231;
 
-                    if (isWoodSide) {
+                    if (isWoodCap) {
                         uint8_t woodCenter = TEXTURE_RES / 2 - 1;
                         int8_t dx = abs(x - woodCenter);
                         int8_t dy = abs((y % TEXTURE_RES) - woodCenter);
