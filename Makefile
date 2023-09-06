@@ -10,7 +10,7 @@ CFLAGS = -Os -Winline -Wall -Wextra \
 ifeq ($(DEBUG),false)
 	CFLAGS += #-nostdlib # needed for rand()
 else
-	CFLAGS += -DDEBUG=true -g
+	CFLAGS += -DDEBUG_GL=true -g
 	LDFLAGS += -g
 endif
 

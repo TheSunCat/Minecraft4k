@@ -66,6 +66,18 @@ glUniform3f_t sym_glUniform3f;
 glUniform3i_t sym_glUniform3i;
 glRecti_t sym_glRecti;
 
+#ifdef DEBUG_GL
+typedef void(*glGetShaderInfoLog_t)(GLuint, GLsizei, GLsizei*, GLchar*);
+typedef void(*glGetProgramInfoLog_t)(GLuint, GLsizei, GLsizei*, GLchar*);
+typedef void(*glGetProgramiv_t)(GLuint, GLenum, GLint*);
+typedef void(*glGetShaderiv_t)(GLuint, GLenum, GLint*);
+
+glGetShaderInfoLog_t sym_glGetShaderInfoLog;
+glGetProgramInfoLog_t sym_glGetProgramInfoLog;
+glGetProgramiv_t sym_glGetProgramiv;
+glGetShaderiv_t sym_glGetShaderiv;
+#endif
+
 // OpenGL IDs
 GLuint shader;
 GLuint worldTex;
@@ -516,11 +528,11 @@ static void on_realize()
 
 #ifdef DEBUG_GL
     GLint isCompiled = 0;
-    glGetShaderiv(f, GL_COMPILE_STATUS, &isCompiled);
+    sym_glGetShaderiv(f, GL_COMPILE_STATUS, &isCompiled);
     if(isCompiled == GL_FALSE) {
         const int maxLength = 1024;
         GLchar* error[maxLength];
-        glGetShaderInfoLog(f, maxLength, &maxLength, error);
+        sym_glGetShaderInfoLog(f, maxLength, &maxLength, error);
         printf("%s\n", error);
 
         exit(-10);
@@ -534,11 +546,11 @@ static void on_realize()
 
 #ifdef DEBUG_GL
     GLint isLinked = 0;
-    glGetProgramiv(shader, GL_LINK_STATUS, (int *)&isLinked);
+    sym_glGetProgramiv(shader, GL_LINK_STATUS, (int *)&isLinked);
     if (isLinked == GL_FALSE) {
         const int maxLength = 1024;
         GLchar* error[maxLength]; 
-        glGetProgramInfoLog(shader, maxLength, &maxLength,error);
+        sym_glGetProgramInfoLog(shader, maxLength, &maxLength,error);
         printf("%s\n", error);
 
         exit(-10);
@@ -591,6 +603,13 @@ void _start() {
     sym_glUniform3f = (glUniform3f_t)dlsym(libGL, "glUniform3f");
     sym_glUniform3i = (glUniform3i_t)dlsym(libGL, "glUniform3i");
     sym_glRecti = (glRecti_t)dlsym(libGL, "glRecti");
+
+#ifdef DEBUG_GL
+    sym_glGetShaderInfoLog = (glGetShaderInfoLog_t)dlsym(libGL, "glGetShaderInfoLog");
+    sym_glGetProgramInfoLog = (glGetProgramInfoLog_t)dlsym(libGL, "glGetProgramInfoLog");
+    sym_glGetProgramiv = (glGetProgramiv_t)dlsym(libGL, "glGetProgramiv");
+    sym_glGetShaderiv = (glGetShaderiv_t)dlsym(libGL, "glGetShaderiv");
+#endif
 
     // technically not needed
     //SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);

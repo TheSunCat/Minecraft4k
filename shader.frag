@@ -38,22 +38,17 @@ void main()
 
     // raymarch outputs
 
-    vec3 ijk = ivec3(P);
-
-    // the amount to increase i, j and k in each axis (either 1 or -1)
-    vec3 ijkStep = sign(rayDir);
-
-    vec3 vInverted = abs(1 / rayDir);
-
-    // the distance to the closest voxel boundary in units of rayTravelDist
-    vec3 dist = (-fract(P) + max(ijkStep, vec3(0))) / rayDir;
-
-    int axis; // X
+    // the distance to the closest voxel boundary in units of rayDir
+    vec3 dist = (-fract(P) + step(vec3(0), rayDir)) / rayDir;
 
     float rayTravelDist;
 
     while (rayTravelDist < 20) // TODO replace RENDER_DIST
     {
+        int axis = (dist.y < dist.x) ? 1 + int(dist.y > dist.z) : 2 * int(dist.x > dist.z);
+        rayTravelDist = dist[axis];
+        dist[axis] += abs(1 / rayDir)[axis];
+
         // exit check for performance, removed for code size :c
         //if(!inWorld(ijk))
         //    break;
@@ -72,16 +67,19 @@ void main()
                 texFetch.y += 2;
         }
 
+        // bit confusing: we repurpose hitPos to fetch the block that was hit
+        hitPos[axis] -= step(0., -rayDir[axis]);
+
         // get block from world
         // TODO replace WORLD_DIMENSIONS
-        texFetch.x += texture(W, ijk.yxz / 64).x * 0xFF;
+        texFetch.x += texture(W, hitPos.yxz / 64).x * 0xFF;
 
         // TODO replace TEXTURE_RES
         vec4 textureColor = texture(T, (trunc(texFetch * 16) + .5) / vec2(112, 48));
 
         // highlight hovered block
         // multiply by 9 to make sure it's white
-        textureColor += int(ijk == b && max(abs(fract(texFetch) - .5).x, abs(fract(texFetch) - .5).y) > .44) * 9;
+        textureColor += int(ivec3(hitPos) == b && max(abs(fract(texFetch) - .5).x, abs(fract(texFetch) - .5).y) > .44) * 9;
 
         if (textureColor.a > 0) { // pixel is not transparent, so output color
             
@@ -89,20 +87,6 @@ void main()
             Z += mix(textureColor, vec4(0), rayTravelDist / 20);
             return;
         }
-
-        // determine the closest voxel boundary
-        axis = (dist.y < dist.x) ? 1 + int(dist.y > dist.z) : 2 * int(dist.x > dist.z);
-
-        // advance to the closest voxel boundary in the axis direction
-
-        // increment the block access position
-        ijk[axis] += ijkStep[axis];
-
-        // update our progress in the ray 
-        rayTravelDist = dist[axis];
-
-        // set the new distance to the next voxel Y boundary
-        dist[axis] += vInverted[axis];
     }
 
     //Z = vec4(0);
