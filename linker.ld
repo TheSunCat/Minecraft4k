@@ -10,7 +10,7 @@ SECTIONS
   . = SEGMENT_START("text-segment", 0x010000) + SIZEOF_HEADERS;
 
   .interp         : { *(.interp) }
-  .gnu.version    : { *(.gnu.hash) *(.gnu.version) *(.gnu.version_r) }
+  .gnu.version    : { *(.hash) *(.gnu.version) *(.gnu.version_r) }
   .dynstr         : { *(.dynstr) }
   .rela.got       : { *(.rela.got) }
 

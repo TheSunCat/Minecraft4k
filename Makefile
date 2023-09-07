@@ -2,10 +2,9 @@ DEBUG=false
 
 
 CFLAGS = -Os -Winline -Wall -Wextra \
-  -fno-plt -fno-stack-protector -fno-stack-check -fno-unwind-tables -ffast-math \
-  -fno-asynchronous-unwind-tables -fomit-frame-pointer -fsingle-precision-constant -fno-pie -no-pie \
-  -fno-pic -fno-PIE -fno-PIC -march=nocona -ffunction-sections -fdata-sections \
-  -fmerge-all-constants -mno-fancy-math-387 -mno-ieee-fp -std=gnu11 -nostartfiles
+  -fno-plt -fno-stack-protector -ffast-math \
+  -fno-pie -no-pie -march=nocona -ffunction-sections -fdata-sections \
+  -nostartfiles
 
 ifeq ($(DEBUG),false)
 	CFLAGS += #-nostdlib # needed for rand()
@@ -14,7 +13,7 @@ else
 	LDFLAGS += -g
 endif
 
-CFLAGS += -Wl,--gc-sections,--no-keep-memory,--no-export-dynamic,--orphan-handling=discard,-z,noseparate-code,-z,stack-size=0,--hash-style=gnu,-Tlinker.ld,-z,max-page-size=64,-nostdlib,--build-id=none
+CFLAGS += -Wl,--gc-sections,--orphan-handling=discard,--hash-style=sysv,-Tlinker.ld,-z,max-page-size=64
 #TODO ,--no-dynamic-linker
 
 .PHONY: clean checkgccversion noelfver
@@ -96,7 +95,7 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 	# remove CRC32 (4 bytes)
 	truncate -s -4 $@
 	# truncate some more bytes (NOTE : unsafe, upon any segfaults just comment the next line)
-	truncate -s -5 $@
+	truncate -s -4 $@
 
 	chmod +x $@
 	wc -c $@
