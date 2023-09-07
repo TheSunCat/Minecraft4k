@@ -105,7 +105,7 @@ float my_sin(float x)
 // size: 128
 float my_cos(float x)
 {
-    return my_sin(x + M_PI / 2.0f);
+    return my_sin(x + HALF_PI);
 }
 
 uint8_t world[WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE];
@@ -307,16 +307,16 @@ static void on_render()
   
     // calculate physics
     {
-        const float inputX = (-kb[SDL_SCANCODE_A] + kb[SDL_SCANCODE_D]) * 0.02f;
-        const float inputZ = (-kb[SDL_SCANCODE_S] + kb[SDL_SCANCODE_W]) * 0.02f;
+        const float inputX = (-kb[SDL_SCANCODE_A] + kb[SDL_SCANCODE_D]) * p0d02;
+        const float inputZ = (-kb[SDL_SCANCODE_S] + kb[SDL_SCANCODE_W]) * p0d02;
 
         playerVelocityX *= 0.5f;
-        playerVelocityY *= 0.99f;
+        playerVelocityY *= p0d99;
         playerVelocityZ *= 0.5f;
 
         playerVelocityX += sinYaw * inputZ + cosYaw * inputX;
         playerVelocityZ += cosYaw * inputZ - sinYaw * inputX;
-        playerVelocityY += 0.003f; // gravity
+        playerVelocityY += p0d003; // gravity
 
         // calculate collision per-axis
         for (uint8_t axis = 0; axis < 3; ++axis) {
@@ -331,16 +331,16 @@ static void on_render()
 
             for (int colliderIndex = 0; colliderIndex < 12; ++colliderIndex) {
                 const float colliderBlockPos[3] = {
-                    newPlayerPos[0] + (colliderIndex % 2) * 0.6f - 0.3f,
-                    newPlayerPos[1] + (colliderIndex / 4 - 1) * 0.8f + 0.65f,
-                    newPlayerPos[2] + (colliderIndex / 2 % 2) * 0.6f - 0.3f
+                    newPlayerPos[0] + (colliderIndex % 2) * p0d60 - p0d30,
+                    newPlayerPos[1] + (colliderIndex / 4 - 1) * p0d80 + p0d65,
+                    newPlayerPos[2] + (colliderIndex / 2 % 2) * p0d60 - p0d30
                 };
 
                 if (!isWithinWorld(colliderBlockPos[0], colliderBlockPos[1], colliderBlockPos[2]) ||
                     getBlock(colliderBlockPos[0], colliderBlockPos[1], colliderBlockPos[2]) != BLOCK_AIR) {
                     if (axis == 1) {
                         if (kb[SDL_SCANCODE_SPACE] && playerVelocityY > 0.0f) {
-                            playerVelocityY = -0.1f; // jump
+                            playerVelocityY = -p0d10; // jump
                         } else {
                             playerVelocityY = 0.0f; // prevent accelerating downwards infinitely
                         }
@@ -654,7 +654,7 @@ void _start() {
               case SDL_MOUSEMOTION:
                 cameraYaw += event.motion.xrel / 500.0f;
                 cameraPitch -= event.motion.yrel / 500.0f;
-                cameraPitch = fmin(M_PI / 2.f, fmax(-M_PI / 2.f, cameraPitch));
+                cameraPitch = fmin(HALF_PI, fmax(-HALF_PI, cameraPitch));
             }
         }
 
