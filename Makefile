@@ -42,8 +42,8 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 	strip -R .note.gnu.property -R .note.gnu.build-id -R .gnu.hash -R .gnu.version -R .fini -R .init_array -R .got -R .discard -R .eh_frame -R .got.plt -R .comment $@
 	# ./Section-Header-Stripper/section-stripper.py $@
 	sstrip -z $@
-	# ./noelfver/noelfver $@ > $@.nover
-	# mv $@.nover $@
+	./noelfver/noelfver $@ > $@.nover
+	mv $@.nover $@
 	
 	truncate -s -50 $@
 
@@ -88,7 +88,7 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 
 %.xz : % Makefile
 	-rm -f $@
-	lzma --format=lzma -9 --extreme --lzma1=preset=9,lc=0,lp=0,pb=0,nice=40,depth=16,dict=16384 --keep --stdout $< > $@
+	lzma --format=lzma -9 --extreme --lzma1=preset=9,lc=0,lp=0,pb=0,nice=40,depth=16,dict=8192,mf=bt2 --keep --stdout $< > $@
 
 %.packed : %.xz packer Makefile
 	cat ./vondehi/vondehi $< > $@
@@ -96,7 +96,7 @@ Minecraft4k : Minecraft4k_opt.elf.packed
 	# remove CRC32 (4 bytes)
 	truncate -s -4 $@
 	# truncate some more bytes (NOTE : unsafe, upon any segfaults just comment the next line)
-	truncate -s -4 $@
+	truncate -s -5 $@
 
 	chmod +x $@
 	wc -c $@
