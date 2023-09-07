@@ -6,7 +6,6 @@ SEARCH_DIR("/usr/x86_64-pc-linux-gnu/lib64"); SEARCH_DIR("/usr/lib"); SEARCH_DIR
 
 SECTIONS
 {
-  PROVIDE (__executable_start = SEGMENT_START("text-segment", 0));
   . = SEGMENT_START("text-segment", 0x010000) + SIZEOF_HEADERS;
 
   .interp         : { *(.interp) }

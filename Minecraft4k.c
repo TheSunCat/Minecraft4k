@@ -310,12 +310,10 @@ static void on_render()
         const float inputX = (-kb[SDL_SCANCODE_A] + kb[SDL_SCANCODE_D]) * p0d02;
         const float inputZ = (-kb[SDL_SCANCODE_S] + kb[SDL_SCANCODE_W]) * p0d02;
 
-        playerVelocityX *= 0.5f;
+        playerVelocityX = playerVelocityX * 0.5f + sinYaw * inputZ + cosYaw * inputX;
         playerVelocityY *= p0d99;
-        playerVelocityZ *= 0.5f;
+        playerVelocityZ = playerVelocityZ * 0.5f + cosYaw * inputZ - sinYaw * inputX;
 
-        playerVelocityX += sinYaw * inputZ + cosYaw * inputX;
-        playerVelocityZ += cosYaw * inputZ - sinYaw * inputX;
         playerVelocityY += p0d003; // gravity
 
         // calculate collision per-axis
@@ -453,9 +451,9 @@ static void generateTextures()
 
                     if (y < grassThreshold) {
                         tint = 0x6AAA40; // green
-                    } else if (y < (grassThreshold + (uint32_t)(TEXTURE_RES * 0.0625f))) {
+                    }/* else if (y < (grassThreshold + (uint32_t)(TEXTURE_RES * 0.0625f))) {
                         brightness = brightness * 2 / 3;
-                    }
+                    }*/ // shadow under grass, you have to go sorry :(
                     break;
                 }
                 case BLOCK_WOOD:
