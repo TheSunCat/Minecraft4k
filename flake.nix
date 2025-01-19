@@ -9,33 +9,42 @@
     self,
     nixpkgs,
   }: let
-    allSystems = [
-      "x86_64-linux"
+    name = "Minecraft4k";
+    system = "x86_64-linux";
+    pkgs = nixpkgs.legacyPackages.${system};
+
+    tools = [
+      pkgs.gcc
+      pkgs.elfkickers
+      pkgs.mono
+      pkgs.nasm
     ];
 
-    forAllSystems = f:
-      nixpkgs.lib.genAttrs allSystems (system:
-        f {
-          pkgs = import nixpkgs {inherit system;};
-        });
+    deps = [
+      pkgs.SDL2
+      pkgs.libGL
+    ];
   in {
-    devShells = forAllSystems ({pkgs}: {
-      default = pkgs.mkShell {
-        packages = with pkgs; [
-          # build tools
-          gcc
-          elfkickers
-          mono
-          nasm
-        ];
+    devShells.${system}.default = pkgs.mkShell {
+      name = "${name}-dev";
 
-        buildInputs = [
-          pkgs.SDL2
-          pkgs.libGL
-        ];
+      packages = tools;
+      buildInputs = deps;
 
-        LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [pkgs.SDL2 pkgs.libGL];
-      };
-    });
+      LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [pkgs.SDL2 pkgs.libGL];
+    };
+
+    packages.${system}.default = pkgs.stdenv.mkDerivation {
+      inherit name;
+
+      src = self;
+      nativeBuildInputs = tools;
+      buildInputs = deps;
+
+      installPhase = ''
+        mkdir -p $out/bin
+        cp ${name} $out/bin
+      '';
+    };
   };
 }
