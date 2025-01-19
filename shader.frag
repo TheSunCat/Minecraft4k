@@ -1,5 +1,7 @@
 #version 130
 
+// NOTE: we have to use short var names as the shader optimizer can't change uniform names
+
 // camera stuff
 uniform float c, d, e, g; // cosYaw, cosPitch, sinYaw, sinPitch
 uniform vec2 r;     // frustumDiv
@@ -19,13 +21,13 @@ out vec4 Z;
 
 void main()
 {
-    // Z = vec4(0);
+    // NOTE: have to init this to support AMD GPUs
+    Z = vec4(0);
 
-    // vec2 centerDist = gl_FragCoord.xy * vec2(1,-1) - vec2(428,-240);
-
-    //vec2 absCenterDist = abs(centerDist);
-    
     // draw crosshair
+    // vec2 centerDist = gl_FragCoord.xy * vec2(1,-1) - vec2(428,-240);
+    // vec2 absCenterDist = abs(centerDist);
+    //
     // if(length(step(abs(centerDist), vec2(2)) + step(abs(centerDist), vec2(10))) > 2)
     //     Z += 1;
 
@@ -41,7 +43,7 @@ void main()
     // the distance to the closest voxel boundary in units of rayDir
     vec3 dist = (-fract(P) + step(vec3(0), rayDir)) / rayDir;
 
-    float rayTravelDist;
+    float rayTravelDist = 0.f;
 
     while (rayTravelDist < 20) // TODO replace RENDER_DIST
     {
@@ -84,12 +86,10 @@ void main()
         if (textureColor.a > 0) { // pixel is not transparent, so output color
             
             // TODO replace RENDER_DIST
-            Z += mix(textureColor, vec4(0), rayTravelDist / 20);
+            Z += textureColor * (1-rayTravelDist / 20);
             return;
         }
     }
-
-    //Z = vec4(0);
 }
 
 // vim: set ft=glsl:

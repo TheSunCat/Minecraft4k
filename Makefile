@@ -1,20 +1,18 @@
 DEBUG=false
 
 
-CFLAGS = -Os -Winline -Wall -Wextra \
-  -fno-plt -fno-stack-protector -ffast-math \
-  -fno-pie -no-pie -march=nocona -ffunction-sections -fdata-sections \
+CFLAGS = -Os -Winline -Wall -Wextra -Wno-incompatible-pointer-types \
   -nostartfiles
+#TODO -Wl,--no-dynamic-linker  -nostdlib
 
 ifeq ($(DEBUG),false)
-	CFLAGS += #-nostdlib # needed for rand()
+	CFLAGS += -fno-plt -fno-stack-protector -ffast-math \
+              -fno-pie -no-pie -march=nocona -ffunction-sections -fdata-sections \
+			  -Wl,--gc-sections,--orphan-handling=discard,--hash-style=sysv,-Tlinker.ld,-z,max-page-size=64
 else
-	CFLAGS += -DDEBUG_GL=true -g
-	LDFLAGS += -g
+	CFLAGS += -DDEBUG_GL=true -ggdb
 endif
 
-CFLAGS += -Wl,--gc-sections,--orphan-handling=discard,--hash-style=sysv,-Tlinker.ld,-z,max-page-size=64
-#TODO ,--no-dynamic-linker
 
 .PHONY: clean checkgccversion noelfver
 
@@ -23,14 +21,16 @@ all : checkgccversion Minecraft4k
 noelfver:
 	make -C noelfver
 
-packer : vondehi/vondehi.asm 
+packer: vondehi/vondehi.asm 
 	cd vondehi; nasm -fbin -o vondehi vondehi.asm -DNO_CHEATING
 
 shader.h : shader.frag Makefile
 	mono ./shader_minifier.exe --preserve-externals shader.frag -o shader.h
 
 Minecraft4k.elf : Minecraft4k.c shader.h linker.ld Makefile
+	echo $(CFLAGS)
 	gcc -o $@ $< $(CFLAGS)
+	cp $@ $@.unstripped
 
 Minecraft4k : Minecraft4k_opt.elf.packed
 	mv $< $@

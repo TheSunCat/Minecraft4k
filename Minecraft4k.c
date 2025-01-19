@@ -357,9 +357,9 @@ static void on_render()
     }
 
     // Compute the raytracing!
-    //glActiveTexture(GL_TEXTURE0);
+    sym_glActiveTexture(GL_TEXTURE0);
     sym_glBindTexture(GL_TEXTURE_3D, worldTex);
-    //glUniform1i(glGetUniformLocation(shader, "W"), 0); // textures are set to 0 by default... this is cursed
+    sym_glUniform1i(6, 0); // textures are set to 0 by default... this is cursed
 
     sym_glActiveTexture(GL_TEXTURE1);
     sym_glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
@@ -652,7 +652,7 @@ void _start() {
               case SDL_MOUSEMOTION:
                 cameraYaw += event.motion.xrel / 500.0f;
                 cameraPitch -= event.motion.yrel / 500.0f;
-                cameraPitch = fmin(HALF_PI, fmax(-HALF_PI, cameraPitch));
+                cameraPitch = (cameraPitch < -HALF_PI) ? -HALF_PI : (cameraPitch > HALF_PI ? HALF_PI : cameraPitch);
             }
         }
 
