@@ -1,9 +1,3 @@
 [submodule "vondehi"]
 	path = vondehi
 	url = https://gitlab.com/PoroCYon/vondehi
-[submodule "Section-Header-Stripper"]
-	path = Section-Header-Stripper
-	url = https://github.com/blackle/Section-Header-Stripper
-[submodule "noelfver"]
-	path = noelfver
-	url = https://gitlab.com/PoroCYon/noelfver
