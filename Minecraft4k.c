@@ -93,8 +93,16 @@ GLuint textureAtlasTex;
 
 int my_rand()
 {
-    // TODO: explore whether we can implement this ourselves smaller
-    return rand();
+    uint32_t random_number;
+
+    random_number = rand();
+
+    // TODO: explore a non-cursed better way? RDRAND?
+    // asm volatile("rdtsc"                // read the timestamp counter
+    //              : "=A"(random_number)  // output: random_number
+    // );
+
+    return random_number;
 }
 
 // size: 352
@@ -104,8 +112,8 @@ float my_sin(float x)
 
     asm("fsin;"
         "fstps %0;"
-        : "=m"(sine)
-        : "t"(x));
+        : "=m"(sine)  // output: sin
+        : "t"(x));    // input: x
 
     return sine;
 }
