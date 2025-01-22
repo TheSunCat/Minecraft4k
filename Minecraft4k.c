@@ -71,11 +71,13 @@ typedef void(*glGetShaderInfoLog_t)(GLuint, GLsizei, GLsizei*, GLchar*);
 typedef void(*glGetProgramInfoLog_t)(GLuint, GLsizei, GLsizei*, GLchar*);
 typedef void(*glGetProgramiv_t)(GLuint, GLenum, GLint*);
 typedef void(*glGetShaderiv_t)(GLuint, GLenum, GLint*);
+typedef GLenum(*glGetError_t)();
 
 glGetShaderInfoLog_t sym_glGetShaderInfoLog;
 glGetProgramInfoLog_t sym_glGetProgramInfoLog;
 glGetProgramiv_t sym_glGetProgramiv;
 glGetShaderiv_t sym_glGetShaderiv;
+glGetError_t sym_glGetError;
 #endif
 
 // OpenGL IDs
@@ -86,6 +88,12 @@ GLuint textureAtlasTex;
 #define X 0
 #define Y 1
 #define Z 2
+
+int my_rand()
+{
+    // TODO: explore whether we can implement this ourselves smaller
+    return rand();
+}
 
 // size: 352
 float my_sin(float x)
@@ -121,7 +129,7 @@ void setBlock(uint32_t x, uint32_t y, uint32_t z, uint8_t block)
 {
     world[toIndex(x, y, z)] = block;
 
-    // glBindTexture(GL_TEXTURE_3D, worldTex);
+    sym_glBindTexture(GL_TEXTURE_3D, worldTex);
     sym_glTexSubImage3D(GL_TEXTURE_3D,              // target
         0,                                      // level
         y, x, z,                                // offset
@@ -129,6 +137,14 @@ void setBlock(uint32_t x, uint32_t y, uint32_t z, uint8_t block)
         GL_RED,                                 // format
         GL_UNSIGNED_BYTE,                       // type
         &block);                                // data
+
+#ifdef DEBUG_GL
+    printf("Changing block to %i at %i,%i,%i\n", block, x, y, z);
+
+    GLenum err = sym_glGetError();
+    if(err)
+        printf("OpenGL ERR: %i\n", err);
+#endif
 }
 
 // size: 96
@@ -388,12 +404,12 @@ static void generateWorld()
     for (uint32_t i = 0; i < WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE; ++i) {
         uint8_t block = BLOCK_AIR;
 
-        uint32_t randInt = rand() % 8;
+        uint32_t randInt = my_rand() % 8;
 
         uint32_t y = i % (WORLD_SIZE);
 
         if (y > (maxTerrainHeight + randInt))
-            block = (rand() % 6) + 1;
+            block = (my_rand() % 6) + 1;
 
         world[i] = block;
     }
@@ -427,15 +443,15 @@ uint32_t textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 7];
 static void generateTextures()
 {
     for (uint32_t blockID = 1; blockID < 7; ++blockID) {
-        uint32_t brightness = 0xFF - (rand() % 0x60);
+        uint32_t brightness = 0xFF - (my_rand() % 0x60);
 
         for (uint32_t y = 0; y < TEXTURE_RES * 3; ++y) {
             for (uint32_t x = 0; x < TEXTURE_RES; ++x) {
                 // gets executed per pixel/texel
 
                 // if the block type is stone, update the noise value less often to get a stretched out look
-                if ((blockID != BLOCK_STONE) | ((rand() % 3) == 0))
-                    brightness = 0xFF - (rand() % 0x60);
+                if ((blockID != BLOCK_STONE) | ((my_rand() % 3) == 0))
+                    brightness = 0xFF - (my_rand() % 0x60);
 
                 uint32_t tint = 0x966C4A; // brown (dirt)
                 switch (blockID)
@@ -469,8 +485,8 @@ static void generateTextures()
                         int8_t dx = abs(x - woodCenter);
                         int8_t dy = abs((y % TEXTURE_RES) - woodCenter);
                         dx = (dy > dx) ? dy : dx;
-                        brightness = 196 - (rand() % 32) + dx % 3 * 32;
-                    } else if (rand() % 2) {
+                        brightness = 196 - (my_rand() % 32) + dx % 3 * 32;
+                    } else if (my_rand() % 2) {
                         brightness = brightness * (150 - (x & 1) * 100) / 100;
                     }
                     break;
@@ -483,7 +499,7 @@ static void generateTextures()
                     break;
                 }
                 case BLOCK_LEAVES:
-                    tint = 0x50D937 * (rand() % 2); // green
+                    tint = 0x50D937 * (my_rand() % 2); // green
                 }
 
                 if (y >= TEXTURE_RES * 2) // bottom side of the block
@@ -563,11 +579,27 @@ static void on_realize()
 }
 
 void _start() {
-    asm volatile("sub $8, %rsp\n");
+    // 32-bit
+    asm volatile("lea 0x4(%esp), %ecx\n");
+    asm volatile("and $0xfffffff0, %esp\n");
+    asm volatile("push -0x4(%ecx)\n");
+    asm volatile("push %ebp\n");
+    asm volatile("mov %esp,%ebp\n");
+    asm volatile("push %edi\n");
+    asm volatile("push %esi\n");
+    asm volatile("push %ebx\n");
+    asm volatile("push %ecx\n");
+    asm volatile("sub $0x90,%esp\n");
+
+    // 64-bit
+    // asm volatile("push %ebp\n");
+    // asm volatile("mov %esp, %ebp\n");
+    // asm volatile("push %ebx\n");
+    // asm volatile("sub $8, %esp\n"); // NOTE: may be UB (shadow space x86) but fun :)
 
     // open libs we need
     void* libSDL = dlopen("libSDL2.so", RTLD_LAZY);
-    void* libGL  = dlopen("libGL.so", RTLD_NOW);
+    void* libGL  = dlopen("libGL.so", RTLD_LAZY);
 
     // get all functions
     
@@ -606,6 +638,7 @@ void _start() {
     sym_glGetProgramInfoLog = (glGetProgramInfoLog_t)dlsym(libGL, "glGetProgramInfoLog");
     sym_glGetProgramiv = (glGetProgramiv_t)dlsym(libGL, "glGetProgramiv");
     sym_glGetShaderiv = (glGetShaderiv_t)dlsym(libGL, "glGetShaderiv");
+    sym_glGetError = (glGetError_t)dlsym(libGL, "glGetError");
 #endif
 
     // technically not needed
@@ -629,7 +662,7 @@ void _start() {
                 // TODO why not return;
                 asm volatile(".intel_syntax noprefix");
                 asm volatile("push 231"); //exit_group
-                asm volatile("pop rax");
+                asm volatile("pop eax");
                 asm volatile("xor edi, edi");
                 asm volatile("syscall");
                 asm volatile(".att_syntax prefix");

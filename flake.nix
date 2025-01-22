@@ -10,19 +10,21 @@
     nixpkgs,
   }: let
     name = "Minecraft4k";
-    system = "x86_64-linux";
+    system = "i686-linux";
+
     pkgs = nixpkgs.legacyPackages.${system};
 
-    tools = [
-      pkgs.gcc
-      pkgs.elfkickers
-      pkgs.mono
-      pkgs.nasm
+    tools = with pkgs; [
+      cmake
+      elfkickers
+      mono
+      nasm
     ];
 
-    deps = [
-      pkgs.SDL2
-      pkgs.libGL
+    deps = with pkgs; [
+      gcc
+      SDL2
+      libGL
     ];
   in {
     devShells.${system}.default = pkgs.mkShell {
