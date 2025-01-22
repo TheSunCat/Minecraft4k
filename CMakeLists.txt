@@ -18,7 +18,8 @@ target_include_directories(Minecraft4k PRIVATE ${CMAKE_BINARY_DIR})
 target_compile_options(Minecraft4k PRIVATE -m32 -Os -Winline -Wall -Wextra -Wno-incompatible-pointer-types -fno-pie -no-pie -fno-plt -fno-stack-protector -ffast-math -march=nocona -nostartfiles)
 
 #TODO:  --orphan-handling=discard --hash-style=sysv
-target_link_options(Minecraft4k PRIVATE -m32 -T "${CMAKE_SOURCE_DIR}/linker.ld" -z max-page-size=64 -nostartfiles --data-sections)
+target_link_options(Minecraft4k PRIVATE -m32 -T "${CMAKE_SOURCE_DIR}/linker.ld" -z max-page-size=64 -nostartfiles --data-sections -nodefaultlibs)
+target_link_libraries(Minecraft4k PRIVATE c)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(Minecraft4k PRIVATE -ggdb)

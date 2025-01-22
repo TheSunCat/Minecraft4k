@@ -2,7 +2,10 @@
 #include <GL/gl.h>
 #include <SDL2/SDL.h>
 #include <stdbool.h>
+
+#ifdef DEBUG_GL
 #include <stdio.h>
+#endif
 
 #include "Constants.h"
 #include "shader.h"
