@@ -16,13 +16,13 @@
 
     tools = with pkgs; [
       cmake
+      python3
       elfkickers
       mono
       nasm
     ];
 
     deps = with pkgs; [
-      gcc
       SDL2
       libGL
     ];

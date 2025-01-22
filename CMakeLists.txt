@@ -17,38 +17,33 @@ add_executable(Minecraft4k Minecraft4k.c shader.h)
 target_include_directories(Minecraft4k PRIVATE ${CMAKE_BINARY_DIR})
 target_compile_options(Minecraft4k PRIVATE -m32 -Os -Winline -Wall -Wextra -Wno-incompatible-pointer-types -fno-pie -no-pie -fno-plt -fno-stack-protector -ffast-math -march=nocona -nostartfiles)
 
-#TODO: --gc-sections --orphan-handling=discard --hash-style=sysv
-target_link_options(Minecraft4k PRIVATE -m32 -T "${CMAKE_SOURCE_DIR}/linker.ld" -z max-page-size=64 -nostartfiles)
+#TODO:  --orphan-handling=discard --hash-style=sysv
+target_link_options(Minecraft4k PRIVATE -m32 -T "${CMAKE_SOURCE_DIR}/linker.ld" -z max-page-size=64 -nostartfiles --data-sections)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(Minecraft4k PRIVATE -ggdb)
 else()
-    target_compile_options(Minecraft4k PRIVATE )
+    # NOTE: -ffunction-sections crashes
+    target_compile_options(Minecraft4k PRIVATE -fdata-sections)
 endif()
 
-if(FALSE)
-add_custom_target(vondehi ALL
-    COMMAND nasm -fbin -o ${CMAKE_BINARY_DIR}/vondehi ${CMAKE_SOURCE_DIR}/vondehi/vondehi.asm -DNO_CHEATING
-    DEPENDS vondehi/vondehi.asm
-    COMMENT "Assembling vondehi.asm"
-)
 
 add_custom_command(
     TARGET Minecraft4k POST_BUILD
     COMMAND ${CMAKE_STRIP} --remove-section=.note.gnu.property --remove-section=.note.gnu.build-id --remove-section=.gnu.hash --remove-section=.fini --remove-section=.init_array --remove-section=.got --remove-section=.discard --remove-section=.eh_frame --remove-section=.got.plt --remove-section=.comment $<TARGET_FILE:Minecraft4k>
+    COMMAND strip -s $<TARGET_FILE:Minecraft4k>
     COMMAND sstrip -z $<TARGET_FILE:Minecraft4k>
-    COMMAND truncate -s -50 $<TARGET_FILE:Minecraft4k>
+    COMMAND truncate -s -42 $<TARGET_FILE:Minecraft4k> # NOTE: tweak (usually lower) if it crashes
     COMMENT "Optimizing Minecraft4k"
 )
 
+find_package(Python REQUIRED)
+
+set(VONDEHI_PATH ${CMAKE_SOURCE_DIR}/vondehi)
 add_custom_command(
     TARGET Minecraft4k POST_BUILD
-    # OUTPUT Minecraft4k.packed
-    COMMAND xz --format=lzma -9 --extreme --lzma1=preset=9,lc=0,lp=0,pb=0,nice=40,depth=16,dict=8192,mf=bt2 --keep --stdout $<TARGET_FILE:Minecraft4k> > Minecraft4k.xz
-    COMMAND cat vondehi Minecraft4k.xz > Minecraft4k.packed
-    COMMAND truncate -s -4 Minecraft4k.packed
-    COMMAND chmod +x Minecraft4k.packed
-    DEPENDS Minecraft4k
-    COMMENT "Creating packed version of Minecraft4k"
+    COMMAND ${Python_EXECUTABLE} ${VONDEHI_PATH}/autovndh.py -x -l -Z --vndh=${VONDEHI_PATH} $<TARGET_FILE:Minecraft4k> $<TARGET_FILE:Minecraft4k>.packed
+    COMMAND mv $<TARGET_FILE:Minecraft4k>.packed $<TARGET_FILE:Minecraft4k>
+    COMMAND chmod +x $<TARGET_FILE:Minecraft4k>
+    COMMENT "Packing with vondehi"
 )
-endif()
