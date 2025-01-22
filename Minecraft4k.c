@@ -1,49 +1,48 @@
 #include <dlfcn.h>
-
-#include <stdio.h>
-#include <stdbool.h>
-
-#include <SDL2/SDL.h>
-
 #include <GL/gl.h>
-
-#include "shader.h"
+#include <SDL2/SDL.h>
+#include <stdbool.h>
+#include <stdio.h>
 
 #include "Constants.h"
+#include "shader.h"
 
 // functions we will use
 
 // SDL2
-typedef SDL_Window*(*SDL_CreateWindow_t)(const char*, int, int, int, int, Uint32);
-typedef SDL_GLContext(*SDL_GL_CreateContext_t)(SDL_Window*);
-typedef int(*SDL_SetRelativeMouseMode_t)(SDL_bool);
-typedef int(*SDL_PollEvent_t)(SDL_Event*);
-typedef void(*SDL_GL_SwapWindow_t)(SDL_Window*);
-typedef const Uint8*(*SDL_GetKeyboardState_t)(int*);
+typedef SDL_Window* (*SDL_CreateWindow_t)(const char*, int, int, int, int, Uint32);
+typedef SDL_GLContext (*SDL_GL_CreateContext_t)(SDL_Window*);
+typedef int (*SDL_SetRelativeMouseMode_t)(SDL_bool);
+typedef int (*SDL_PollEvent_t)(SDL_Event*);
+typedef void (*SDL_GL_SwapWindow_t)(SDL_Window*);
+typedef const Uint8* (*SDL_GetKeyboardState_t)(int*);
 
 SDL_GetKeyboardState_t sym_SDL_GetKeyboardState;
 
 // GL
-typedef GLuint(*glCreateShader_t)(GLenum);
-typedef void(*glShaderSource_t)(GLuint, GLsizei, const GLchar *const *, const GLint*);
-typedef void(*glCompileShader_t)(GLuint);
-typedef GLuint(*glCreateProgram_t)();
-typedef void(*glAttachShader_t)(GLuint, GLuint);
-typedef void(*glLinkProgram_t)(GLuint);
-typedef void(*glUseProgram_t)(GLuint);
-typedef void(*glGenTextures_t)(GLsizei,GLuint*);
-typedef void(*glBindTexture_t)(GLenum, GLuint);
-typedef void(*glTexParameteri_t)(GLenum, GLenum, GLint);
-typedef void(*glTexImage3D_t)(GLenum, GLint, GLint, GLsizei, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid *);
-typedef void(*glTexSubImage3D_t)(GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei, GLenum, GLenum, const GLvoid *);
-typedef void(*glTexImage2D_t)(GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid *);
-typedef void(*glActiveTexture_t)(GLenum);
-typedef void(*glUniform1i_t)(GLint, GLint);
-typedef void(*glUniform1f_t)(GLint, GLfloat);
-typedef void(*glUniform2f_t)(GLint, GLfloat, GLfloat);
-typedef void(*glUniform3f_t)(GLint, GLfloat, GLfloat, GLfloat);
-typedef void(*glUniform3i_t)(GLint, GLint, GLint, GLint);
-typedef void(*glRecti_t)(GLint, GLint, GLint, GLint);
+typedef GLuint (*glCreateShader_t)(GLenum);
+typedef void (*glShaderSource_t)(GLuint, GLsizei, const GLchar* const*, const GLint*);
+typedef void (*glCompileShader_t)(GLuint);
+typedef GLuint (*glCreateProgram_t)();
+typedef void (*glAttachShader_t)(GLuint, GLuint);
+typedef void (*glLinkProgram_t)(GLuint);
+typedef void (*glUseProgram_t)(GLuint);
+typedef void (*glGenTextures_t)(GLsizei, GLuint*);
+typedef void (*glBindTexture_t)(GLenum, GLuint);
+typedef void (*glTexParameteri_t)(GLenum, GLenum, GLint);
+typedef void (*glTexImage3D_t)(GLenum, GLint, GLint, GLsizei, GLsizei, GLsizei, GLint, GLenum,
+                               GLenum, const GLvoid*);
+typedef void (*glTexSubImage3D_t)(GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei,
+                                  GLenum, GLenum, const GLvoid*);
+typedef void (*glTexImage2D_t)(GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum,
+                               const GLvoid*);
+typedef void (*glActiveTexture_t)(GLenum);
+typedef void (*glUniform1i_t)(GLint, GLint);
+typedef void (*glUniform1f_t)(GLint, GLfloat);
+typedef void (*glUniform2f_t)(GLint, GLfloat, GLfloat);
+typedef void (*glUniform3f_t)(GLint, GLfloat, GLfloat, GLfloat);
+typedef void (*glUniform3i_t)(GLint, GLint, GLint, GLint);
+typedef void (*glRecti_t)(GLint, GLint, GLint, GLint);
 
 glCreateShader_t sym_glCreateShader;
 glShaderSource_t sym_glShaderSource;
@@ -67,11 +66,11 @@ glUniform3i_t sym_glUniform3i;
 glRecti_t sym_glRecti;
 
 #ifdef DEBUG_GL
-typedef void(*glGetShaderInfoLog_t)(GLuint, GLsizei, GLsizei*, GLchar*);
-typedef void(*glGetProgramInfoLog_t)(GLuint, GLsizei, GLsizei*, GLchar*);
-typedef void(*glGetProgramiv_t)(GLuint, GLenum, GLint*);
-typedef void(*glGetShaderiv_t)(GLuint, GLenum, GLint*);
-typedef GLenum(*glGetError_t)();
+typedef void (*glGetShaderInfoLog_t)(GLuint, GLsizei, GLsizei*, GLchar*);
+typedef void (*glGetProgramInfoLog_t)(GLuint, GLsizei, GLsizei*, GLchar*);
+typedef void (*glGetProgramiv_t)(GLuint, GLenum, GLint*);
+typedef void (*glGetShaderiv_t)(GLuint, GLenum, GLint*);
+typedef GLenum (*glGetError_t)();
 
 glGetShaderInfoLog_t sym_glGetShaderInfoLog;
 glGetProgramInfoLog_t sym_glGetProgramInfoLog;
@@ -99,13 +98,11 @@ int my_rand()
 float my_sin(float x)
 {
     float sine;
-    
-    asm (
-        "fsin;"
+
+    asm("fsin;"
         "fstps %0;"
-        : "=m" (sine)
-        : "t" (x)
-    );
+        : "=m"(sine)
+        : "t"(x));
 
     return sine;
 }
@@ -130,13 +127,13 @@ void setBlock(uint32_t x, uint32_t y, uint32_t z, uint8_t block)
     world[toIndex(x, y, z)] = block;
 
     sym_glBindTexture(GL_TEXTURE_3D, worldTex);
-    sym_glTexSubImage3D(GL_TEXTURE_3D,              // target
-        0,                                      // level
-        y, x, z,                                // offset
-        1, 1, 1,                                // size
-        GL_RED,                                 // format
-        GL_UNSIGNED_BYTE,                       // type
-        &block);                                // data
+    sym_glTexSubImage3D(GL_TEXTURE_3D,     // target
+                        0,                 // level
+                        y, x, z,           // offset
+                        1, 1, 1,           // size
+                        GL_RED,            // format
+                        GL_UNSIGNED_BYTE,  // type
+                        &block);           // data
 
 #ifdef DEBUG_GL
     printf("Changing block to %i at %i,%i,%i\n", block, x, y, z);
@@ -189,7 +186,7 @@ float playerPosX = WORLD_SIZE / 2.0f + 0.5f, playerPosY = 1, playerPosZ = WORLD_
 // size: 64
 float my_fract(float x)
 {
-    return x - (float)((int) x);
+    return x - (float)((int)x);
 }
 
 // size: 240
@@ -224,8 +221,12 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
     float distY = -my_fract(playerPosY) * jStep;
     float distZ = -my_fract(playerPosZ) * kStep;
 
-    distX += iStep == 1; distY += jStep == 1; distZ += kStep == 1;
-    distX *= vInvertedX; distY *= vInvertedY; distZ *= vInvertedZ;
+    distX += iStep == 1;
+    distY += jStep == 1;
+    distZ += kStep == 1;
+    distX *= vInvertedX;
+    distY *= vInvertedY;
+    distZ *= vInvertedZ;
 
     uint8_t axis = X;
 
@@ -252,9 +253,9 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
         }
 
         // determine the closest voxel boundary
-        if (distY < distX)
+        if(distY < distX)
         {
-            if (distY < distZ)
+            if(distY < distZ)
             {
                 axis = Y;
                 // increment the block access position
@@ -276,7 +277,7 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
                 distZ += vInvertedZ;
             }
         }
-        else if (distX < distZ)
+        else if(distX < distZ)
         {
             axis = X;
 
@@ -297,7 +298,8 @@ static void raycastWorld(float sinYaw, float cosYaw, float sinPitch, float cosPi
     }
 
     // focus the top of the world by default (hope the player won't see!)
-    hoverBlockY = 0; placeBlockY = 0;
+    hoverBlockY = 0;
+    placeBlockY = 0;
 }
 
 const uint8_t* kb = NULL;
@@ -315,12 +317,12 @@ static void on_render()
     const float cosYaw = my_cos(cameraYaw);
     const float sinPitch = my_sin(cameraPitch);
     const float cosPitch = my_cos(cameraPitch);
- 
+
     // update position for placing/destroying blocks
     raycastWorld(sinYaw, cosYaw, sinPitch, cosPitch);
 
     updateController();
-  
+
     // calculate physics
     {
         const float inputX = (-kb[SDL_SCANCODE_A] + kb[SDL_SCANCODE_D]) * p0d02;
@@ -330,33 +332,39 @@ static void on_render()
         playerVelocityY *= p0d99;
         playerVelocityZ = playerVelocityZ * 0.5f + cosYaw * inputZ - sinYaw * inputX;
 
-        playerVelocityY += p0d003; // gravity
+        playerVelocityY += p0d003;  // gravity
 
         // calculate collision per-axis
-        for (uint8_t axis = 0; axis < 3; ++axis) {
+        for(uint8_t axis = 0; axis < 3; ++axis)
+        {
             bool moveValid = true;
 
             // TODO implement WORLD_WRAP
-            const float newPlayerPos[3] = {
-                playerPosX + playerVelocityX * (axis == X),
-                playerPosY + playerVelocityY * (axis == Y),
-                playerPosZ + playerVelocityZ * (axis == Z)
-            };
+            const float newPlayerPos[3] = { playerPosX + playerVelocityX * (axis == X),
+                                            playerPosY + playerVelocityY * (axis == Y),
+                                            playerPosZ + playerVelocityZ * (axis == Z) };
 
-            for (int colliderIndex = 0; colliderIndex < 12; ++colliderIndex) {
+            for(int colliderIndex = 0; colliderIndex < 12; ++colliderIndex)
+            {
                 const float colliderBlockPos[3] = {
                     newPlayerPos[0] + (colliderIndex % 2) * p0d60 - p0d30,
                     newPlayerPos[1] + (colliderIndex / 4 - 1) * p0d80 + p0d65,
                     newPlayerPos[2] + (colliderIndex / 2 % 2) * p0d60 - p0d30
                 };
 
-                if (!isWithinWorld(colliderBlockPos[0], colliderBlockPos[1], colliderBlockPos[2]) ||
-                    getBlock(colliderBlockPos[0], colliderBlockPos[1], colliderBlockPos[2]) != BLOCK_AIR) {
-                    if (axis == 1) {
-                        if (kb[SDL_SCANCODE_SPACE] && playerVelocityY > 0.0f) {
-                            playerVelocityY = -p0d10; // jump
-                        } else {
-                            playerVelocityY = 0.0f; // prevent accelerating downwards infinitely
+                if(!isWithinWorld(colliderBlockPos[0], colliderBlockPos[1], colliderBlockPos[2]) ||
+                   getBlock(colliderBlockPos[0], colliderBlockPos[1], colliderBlockPos[2]) !=
+                       BLOCK_AIR)
+                {
+                    if(axis == 1)
+                    {
+                        if(kb[SDL_SCANCODE_SPACE] && playerVelocityY > 0.0f)
+                        {
+                            playerVelocityY = -p0d10;  // jump
+                        }
+                        else
+                        {
+                            playerVelocityY = 0.0f;  // prevent accelerating downwards infinitely
                         }
                     }
                     moveValid = false;
@@ -364,7 +372,8 @@ static void on_render()
                 }
             }
 
-            if (moveValid) {
+            if(moveValid)
+            {
                 playerPosX = newPlayerPos[0];
                 playerPosY = newPlayerPos[1];
                 playerPosZ = newPlayerPos[2];
@@ -375,14 +384,14 @@ static void on_render()
     // Compute the raytracing!
     sym_glActiveTexture(GL_TEXTURE0);
     sym_glBindTexture(GL_TEXTURE_3D, worldTex);
-    sym_glUniform1i(6, 0); // textures are set to 0 by default... this is cursed
+    sym_glUniform1i(6, 0);  // textures are set to 0 by default... this is cursed
 
     sym_glActiveTexture(GL_TEXTURE1);
     sym_glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
     sym_glUniform1i(SHADER_UNIFORM_T, 1);
 
     // sym_glUniform2f(glGetUniformLocation(shader, "S"), SCR_WIDTH, SCR_HEIGHT);
-    
+
     sym_glUniform1f(SHADER_UNIFORM_c, cosYaw);
     sym_glUniform1f(SHADER_UNIFORM_d, cosPitch);
     sym_glUniform1f(SHADER_UNIFORM_e, sinYaw);
@@ -391,9 +400,9 @@ static void on_render()
     sym_glUniform3f(SHADER_UNIFORM_P, playerPosX, playerPosY, playerPosZ);
 
     sym_glUniform3i(SHADER_UNIFORM_b, hoverBlockX, hoverBlockY, hoverBlockZ);
- 
+
     // render!
-    sym_glRecti(-1,-1,1,1);
+    sym_glRecti(-1, -1, 1, 1);
 }
 
 // size: 224
@@ -401,19 +410,20 @@ static void generateWorld()
 {
     const uint8_t maxTerrainHeight = WORLD_HEIGHT / 2;
 
-    for (uint32_t i = 0; i < WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE; ++i) {
+    for(uint32_t i = 0; i < WORLD_SIZE * WORLD_HEIGHT * WORLD_SIZE; ++i)
+    {
         uint8_t block = BLOCK_AIR;
 
         uint32_t randInt = my_rand() % 8;
 
         uint32_t y = i % (WORLD_SIZE);
 
-        if (y > (maxTerrainHeight + randInt))
+        if(y > (maxTerrainHeight + randInt))
             block = (my_rand() % 6) + 1;
 
         world[i] = block;
     }
-    
+
     // Upload world to GPU
     sym_glGenTextures(1, &worldTex);
     sym_glBindTexture(GL_TEXTURE_3D, worldTex);
@@ -427,14 +437,14 @@ static void generateWorld()
     sym_glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     sym_glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    sym_glTexImage3D(GL_TEXTURE_3D,                 // target
-        0,                                      // level
-        GL_RED,                                 // internal format
-        WORLD_SIZE, WORLD_HEIGHT, WORLD_SIZE,   // size
-        0,                                      // border
-        GL_RED,                                 // format
-        GL_UNSIGNED_BYTE,                       // type
-        world);                                 // pixels
+    sym_glTexImage3D(GL_TEXTURE_3D,                         // target
+                     0,                                     // level
+                     GL_RED,                                // internal format
+                     WORLD_SIZE, WORLD_HEIGHT, WORLD_SIZE,  // size
+                     0,                                     // border
+                     GL_RED,                                // format
+                     GL_UNSIGNED_BYTE,                      // type
+                     world);                                // pixels
 }
 
 uint32_t textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 7];
@@ -442,74 +452,83 @@ uint32_t textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 7];
 // size: 672
 static void generateTextures()
 {
-    for (uint32_t blockID = 1; blockID < 7; ++blockID) {
+    for(uint32_t blockID = 1; blockID < 7; ++blockID)
+    {
         uint32_t brightness = 0xFF - (my_rand() % 0x60);
 
-        for (uint32_t y = 0; y < TEXTURE_RES * 3; ++y) {
-            for (uint32_t x = 0; x < TEXTURE_RES; ++x) {
+        for(uint32_t y = 0; y < TEXTURE_RES * 3; ++y)
+        {
+            for(uint32_t x = 0; x < TEXTURE_RES; ++x)
+            {
                 // gets executed per pixel/texel
 
-                // if the block type is stone, update the noise value less often to get a stretched out look
-                if ((blockID != BLOCK_STONE) | ((my_rand() % 3) == 0))
+                // if the block type is stone, update the noise value less often to get a stretched
+                // out look
+                if((blockID != BLOCK_STONE) | ((my_rand() % 3) == 0))
                     brightness = 0xFF - (my_rand() % 0x60);
 
-                uint32_t tint = 0x966C4A; // brown (dirt)
-                switch (blockID)
+                uint32_t tint = 0x966C4A;  // brown (dirt)
+                switch(blockID)
                 {
-                case BLOCK_STONE:
-                {
-                    tint = 0x7F7F7F; // grey
-                    break;
-                }
-                case BLOCK_GRASS:
-                {
-                    uint32_t grassThreshold = ((x * x * 3 + x * 81) >> 2 & 0x3) + (uint32_t)(TEXTURE_RES * 1.125f);
-
-                    if (y < grassThreshold) {
-                        tint = 0x6AAA40; // green
-                    }/* else if (y < (grassThreshold + (uint32_t)(TEXTURE_RES * 0.0625f))) {
-                        brightness = brightness * 2 / 3;
-                    }*/ // shadow under grass, you have to go sorry :(
-                    break;
-                }
-                case BLOCK_WOOD:
-                {
-                    bool isWoodCap = ((y < TEXTURE_RES) | (y >= TEXTURE_RES * 2)) &
-                                      (x > 0) & (x < TEXTURE_RES - 1) &&
-                                      ((y > 0 && y < TEXTURE_RES - 1) | (y > TEXTURE_RES * 2 && y < TEXTURE_RES * 3 - 1));
-
-                    tint = isWoodCap ? 0xBC9862 : 0x675231;
-
-                    if (isWoodCap) {
-                        uint8_t woodCenter = TEXTURE_RES / 2 - 1;
-                        int8_t dx = abs(x - woodCenter);
-                        int8_t dy = abs((y % TEXTURE_RES) - woodCenter);
-                        dx = (dy > dx) ? dy : dx;
-                        brightness = 196 - (my_rand() % 32) + dx % 3 * 32;
-                    } else if (my_rand() % 2) {
-                        brightness = brightness * (150 - (x & 1) * 100) / 100;
+                    case BLOCK_STONE:
+                    {
+                        tint = 0x7F7F7F;  // grey
+                        break;
                     }
-                    break;
-                }
-                case BLOCK_BRICKS:
-                {
-                    tint = 0xB53A15; // red
-                    if ((x + y / 4 * 4) % 8 == 0 || y % 4 == 0) // gap between bricks
-                        tint = 0xBCAFA5; // reddish light grey
-                    break;
-                }
-                case BLOCK_LEAVES:
-                    tint = 0x50D937 * (my_rand() % 2); // green
+                    case BLOCK_GRASS:
+                    {
+                        uint32_t grassThreshold =
+                            ((x * x * 3 + x * 81) >> 2 & 0x3) + (uint32_t)(TEXTURE_RES * 1.125f);
+
+                        if(y < grassThreshold)
+                        {
+                            tint = 0x6AAA40;  // green
+                        } /* else if (y < (grassThreshold + (uint32_t)(TEXTURE_RES * 0.0625f))) {
+                         brightness = brightness * 2 / 3;
+                     }*/  // shadow under grass, you have to go sorry :(
+                        break;
+                    }
+                    case BLOCK_WOOD:
+                    {
+                        bool isWoodCap = ((y < TEXTURE_RES) | (y >= TEXTURE_RES * 2)) & (x > 0) &
+                                             (x < TEXTURE_RES - 1) &&
+                                         ((y > 0 && y < TEXTURE_RES - 1) |
+                                          (y > TEXTURE_RES * 2 && y < TEXTURE_RES * 3 - 1));
+
+                        tint = isWoodCap ? 0xBC9862 : 0x675231;
+
+                        if(isWoodCap)
+                        {
+                            uint8_t woodCenter = TEXTURE_RES / 2 - 1;
+                            int8_t dx = abs(x - woodCenter);
+                            int8_t dy = abs((y % TEXTURE_RES) - woodCenter);
+                            dx = (dy > dx) ? dy : dx;
+                            brightness = 196 - (my_rand() % 32) + dx % 3 * 32;
+                        }
+                        else if(my_rand() % 2)
+                        {
+                            brightness = brightness * (150 - (x & 1) * 100) / 100;
+                        }
+                        break;
+                    }
+                    case BLOCK_BRICKS:
+                    {
+                        tint = 0xB53A15;                            // red
+                        if((x + y / 4 * 4) % 8 == 0 || y % 4 == 0)  // gap between bricks
+                            tint = 0xBCAFA5;                        // reddish light grey
+                        break;
+                    }
+                    case BLOCK_LEAVES:
+                        tint = 0x50D937 * (my_rand() % 2);  // green
                 }
 
-                if (y >= TEXTURE_RES * 2) // bottom side of the block
-                    brightness /= 2; // make it darker, baked "shading"
+                if(y >= TEXTURE_RES * 2)  // bottom side of the block
+                    brightness /= 2;      // make it darker, baked "shading"
 
                 // multiply tint by the grayscale detail
-                const uint32_t col = (tint) << 24 |
-                    (tint >> 16 & 0xFF) * brightness / 0xFF << 16 |
-                    (tint >> 8 & 0xFF) * brightness  / 0xFF << 8 |
-                    (tint & 0xFF) * brightness       / 0xFF << 0;
+                const uint32_t col = (tint) << 24 | (tint >> 16 & 0xFF) * brightness / 0xFF << 16 |
+                                     (tint >> 8 & 0xFF) * brightness / 0xFF << 8 |
+                                     (tint & 0xFF) * brightness / 0xFF << 0;
 
                 // write pixel to the texture atlas
                 textureAtlas[x + (TEXTURE_RES * blockID) + y * (TEXTURE_RES * 7)] = col;
@@ -521,12 +540,13 @@ static void generateTextures()
     sym_glGenTextures(1, &textureAtlasTex);
     sym_glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
 
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     sym_glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     // sym_glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    sym_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_RES * 7, TEXTURE_RES * 3, 0, GL_BGRA, GL_UNSIGNED_BYTE, textureAtlas);
+    sym_glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_RES * 7, TEXTURE_RES * 3, 0, GL_BGRA,
+                     GL_UNSIGNED_BYTE, textureAtlas);
 }
 
 // size: 1832
@@ -542,7 +562,8 @@ static void on_realize()
 #ifdef DEBUG_GL
     GLint isCompiled = 0;
     sym_glGetShaderiv(f, GL_COMPILE_STATUS, &isCompiled);
-    if(isCompiled == GL_FALSE) {
+    if(isCompiled == GL_FALSE)
+    {
         const int maxLength = 1024;
         GLchar* error[maxLength];
         sym_glGetShaderInfoLog(f, maxLength, &maxLength, error);
@@ -559,11 +580,12 @@ static void on_realize()
 
 #ifdef DEBUG_GL
     GLint isLinked = 0;
-    sym_glGetProgramiv(shader, GL_LINK_STATUS, (int *)&isLinked);
-    if (isLinked == GL_FALSE) {
+    sym_glGetProgramiv(shader, GL_LINK_STATUS, (int*)&isLinked);
+    if(isLinked == GL_FALSE)
+    {
         const int maxLength = 1024;
-        GLchar* error[maxLength]; 
-        sym_glGetProgramInfoLog(shader, maxLength, &maxLength,error);
+        GLchar* error[maxLength];
+        sym_glGetProgramInfoLog(shader, maxLength, &maxLength, error);
         printf("%s\n", error);
 
         exit(-10);
@@ -574,11 +596,12 @@ static void on_realize()
 
     // Game init
     generateWorld();
-    
+
     generateTextures();
 }
 
-void _start() {
+void _start()
+{
     // 32-bit
     asm volatile("lea 0x4(%esp), %ecx\n");
     asm volatile("and $0xfffffff0, %esp\n");
@@ -599,18 +622,21 @@ void _start() {
 
     // open libs we need
     void* libSDL = dlopen("libSDL2.so", RTLD_LAZY);
-    void* libGL  = dlopen("libGL.so", RTLD_LAZY);
+    void* libGL = dlopen("libGL.so", RTLD_LAZY);
 
     // get all functions
-    
+
     // SDL
     SDL_CreateWindow_t sym_SDL_CreateWindow = (SDL_CreateWindow_t)dlsym(libSDL, "SDL_CreateWindow");
-    SDL_GL_CreateContext_t sym_SDL_GL_CreateContext = (SDL_GL_CreateContext_t)dlsym(libSDL, "SDL_GL_CreateContext");
-    SDL_SetRelativeMouseMode_t sym_SDL_SetRelativeMouseMode = (SDL_SetRelativeMouseMode_t)dlsym(libSDL, "SDL_SetRelativeMouseMode");
+    SDL_GL_CreateContext_t sym_SDL_GL_CreateContext =
+        (SDL_GL_CreateContext_t)dlsym(libSDL, "SDL_GL_CreateContext");
+    SDL_SetRelativeMouseMode_t sym_SDL_SetRelativeMouseMode =
+        (SDL_SetRelativeMouseMode_t)dlsym(libSDL, "SDL_SetRelativeMouseMode");
     SDL_PollEvent_t sym_SDL_PollEvent = (SDL_PollEvent_t)dlsym(libSDL, "SDL_PollEvent");
-    SDL_GL_SwapWindow_t sym_SDL_GL_SwapWindow = (SDL_GL_SwapWindow_t)dlsym(libSDL, "SDL_GL_SwapWindow");
+    SDL_GL_SwapWindow_t sym_SDL_GL_SwapWindow =
+        (SDL_GL_SwapWindow_t)dlsym(libSDL, "SDL_GL_SwapWindow");
     sym_SDL_GetKeyboardState = (SDL_GetKeyboardState_t)dlsym(libSDL, "SDL_GetKeyboardState");
-  
+
     // GL
     sym_glCreateShader = (glCreateShader_t)dlsym(libGL, "glCreateShader");
     sym_glShaderSource = (glShaderSource_t)dlsym(libGL, "glShaderSource");
@@ -642,11 +668,10 @@ void _start() {
 #endif
 
     // technically not needed
-    //SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
-    window = sym_SDL_CreateWindow("", 0, 0,
-        SCR_WIDTH,
-        SCR_HEIGHT,
-        SDL_WINDOW_OPENGL// TODO freezes why??? | SDL_WINDOW_RESIZABLE//| SDL_WINDOW_FULLSCREEN
+    // SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+    window = sym_SDL_CreateWindow(
+        "", 0, 0, SCR_WIDTH, SCR_HEIGHT,
+        SDL_WINDOW_OPENGL  // TODO freezes why??? | SDL_WINDOW_RESIZABLE//| SDL_WINDOW_FULLSCREEN
     );
 
     sym_SDL_GL_CreateContext(window);
@@ -654,38 +679,43 @@ void _start() {
 
     on_realize();
 
-    while (true) {
+    while(true)
+    {
         SDL_Event event;
-        while (sym_SDL_PollEvent(&event)) {
-            switch(event.type) {
-              case SDL_QUIT:
-                // TODO why not return;
-                asm volatile(".intel_syntax noprefix");
-                asm volatile("push 231"); //exit_group
-                asm volatile("pop eax");
-                asm volatile("xor edi, edi");
-                asm volatile("syscall");
-                asm volatile(".att_syntax prefix");
-                __builtin_unreachable();
-              // case SDL_WINDOWEVENT:
-              //   if(event.window.event == SDL_WINDOWEVENT_RESIZED)
-              //   {
-              //       // SCR_WIDTH = event.window.data1;
-              //       // SCR_HEIGHT = event.window.data2;
+        while(sym_SDL_PollEvent(&event))
+        {
+            switch(event.type)
+            {
+                case SDL_QUIT:
+                    // TODO why not return;
+                    asm volatile(".intel_syntax noprefix");
+                    asm volatile("push 231");  // exit_group
+                    asm volatile("pop eax");
+                    asm volatile("xor edi, edi");
+                    asm volatile("syscall");
+                    asm volatile(".att_syntax prefix");
+                    __builtin_unreachable();
+                // case SDL_WINDOWEVENT:
+                //   if(event.window.event == SDL_WINDOWEVENT_RESIZED)
+                //   {
+                //       // SCR_WIDTH = event.window.data1;
+                //       // SCR_HEIGHT = event.window.data2;
 
-              //       sym_glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-              //   }
-              //   break;
-              case SDL_MOUSEBUTTONDOWN:
-                if(event.button.button == SDL_BUTTON_LEFT)
-                    breakBlock();
-                else
-                    placeBlock(BLOCK_DIRT);
-                break;
-              case SDL_MOUSEMOTION:
-                cameraYaw += event.motion.xrel / 500.0f;
-                cameraPitch -= event.motion.yrel / 500.0f;
-                cameraPitch = (cameraPitch < -HALF_PI) ? -HALF_PI : (cameraPitch > HALF_PI ? HALF_PI : cameraPitch);
+                //       sym_glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+                //   }
+                //   break;
+                case SDL_MOUSEBUTTONDOWN:
+                    if(event.button.button == SDL_BUTTON_LEFT)
+                        breakBlock();
+                    else
+                        placeBlock(BLOCK_DIRT);
+                    break;
+                case SDL_MOUSEMOTION:
+                    cameraYaw += event.motion.xrel / 500.0f;
+                    cameraPitch -= event.motion.yrel / 500.0f;
+                    cameraPitch = (cameraPitch < -HALF_PI)
+                                    ? -HALF_PI
+                                    : (cameraPitch > HALF_PI ? HALF_PI : cameraPitch);
             }
         }
 
