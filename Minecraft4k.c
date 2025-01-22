@@ -463,13 +463,13 @@ uint32_t textureAtlas[TEXTURE_RES * TEXTURE_RES * 3 * 7];
 // size: 672
 static void generateTextures()
 {
-    for(uint32_t blockID = 1; blockID < 7; ++blockID)
+    for(uint8_t blockID = 1; blockID < 7; ++blockID)
     {
         uint32_t brightness = 0xFF - (my_rand() % 0x60);
 
-        for(uint32_t y = 0; y < TEXTURE_RES * 3; ++y)
+        for(int16_t y = 0; y < TEXTURE_RES * 3; ++y)
         {
-            for(uint32_t x = 0; x < TEXTURE_RES; ++x)
+            for(int16_t x = 0; x < TEXTURE_RES; ++x)
             {
                 // gets executed per pixel/texel
 
@@ -510,11 +510,18 @@ static void generateTextures()
 
                         if(isWoodCap)
                         {
-                            uint8_t woodCenter = TEXTURE_RES / 2 - 1;
-                            int8_t dx = abs(x - woodCenter);
-                            int8_t dy = abs((y % TEXTURE_RES) - woodCenter);
-                            dx = (dy > dx) ? dy : dx;
-                            brightness = 196 - (my_rand() % 32) + dx % 3 * 32;
+                            int8_t woodCenter = TEXTURE_RES / 2 - 1;
+                            int8_t dx = (x - woodCenter);
+                            int8_t dy = (y % TEXTURE_RES - woodCenter);
+
+                            if(dx < 0)
+                                dx = 1 - dx;
+
+                            if(dy < 0)
+                                dy = 1 - dy;
+
+                            int8_t dist = (dy > dx) ? dy : dx;
+                            brightness = 196 - (my_rand() % 32) + (dist % 3 * 32);
                         }
                         else if(my_rand() % 2)
                         {
