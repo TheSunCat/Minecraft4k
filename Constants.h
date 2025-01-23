@@ -31,14 +31,11 @@
 #define FOV 90.0f
 
 #define SHADER_UNIFORM_c 0
-#define SHADER_UNIFORM_d 1
-#define SHADER_UNIFORM_e 2
-#define SHADER_UNIFORM_g 3
-#define SHADER_UNIFORM_r 4
-#define SHADER_UNIFORM_P 5
-#define SHADER_UNIFORM_W 6
-#define SHADER_UNIFORM_T 7
-#define SHADER_UNIFORM_b 8
+#define SHADER_UNIFORM_r 1
+#define SHADER_UNIFORM_P 2
+#define SHADER_UNIFORM_W 3
+#define SHADER_UNIFORM_T 4
+#define SHADER_UNIFORM_b 5
 
 // from https://iquilezles.org/articles/float4k/
 // better compressible floats

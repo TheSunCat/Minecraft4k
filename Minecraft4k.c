@@ -41,10 +41,10 @@ typedef void (*glTexImage2D_t)(GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GL
                                const GLvoid*);
 typedef void (*glActiveTexture_t)(GLenum);
 typedef void (*glUniform1i_t)(GLint, GLint);
-typedef void (*glUniform1f_t)(GLint, GLfloat);
 typedef void (*glUniform2f_t)(GLint, GLfloat, GLfloat);
 typedef void (*glUniform3f_t)(GLint, GLfloat, GLfloat, GLfloat);
 typedef void (*glUniform3i_t)(GLint, GLint, GLint, GLint);
+typedef void (*glUniform4f_t)(GLint, GLfloat, GLfloat, GLfloat, GLfloat);
 typedef void (*glRecti_t)(GLint, GLint, GLint, GLint);
 
 glCreateShader_t sym_glCreateShader;
@@ -62,10 +62,10 @@ glTexSubImage3D_t sym_glTexSubImage3D;
 glTexImage2D_t sym_glTexImage2D;
 glActiveTexture_t sym_glActiveTexture;
 glUniform1i_t sym_glUniform1i;
-glUniform1f_t sym_glUniform1f;
 glUniform2f_t sym_glUniform2f;
 glUniform3f_t sym_glUniform3f;
 glUniform3i_t sym_glUniform3i;
+glUniform4f_t sym_glUniform4f;
 glRecti_t sym_glRecti;
 
 #ifdef DEBUG_GL
@@ -395,18 +395,13 @@ static void on_render()
     // Compute the raytracing!
     sym_glActiveTexture(GL_TEXTURE0);
     sym_glBindTexture(GL_TEXTURE_3D, worldTex);
-    sym_glUniform1i(6, 0);  // textures are set to 0 by default... this is cursed
+    // sym_glUniform1i(SHADER_UNIFORM_W, 0);  // textures are set to 0 by default... this is cursed
 
     sym_glActiveTexture(GL_TEXTURE1);
     sym_glBindTexture(GL_TEXTURE_2D, textureAtlasTex);
     sym_glUniform1i(SHADER_UNIFORM_T, 1);
 
-    // sym_glUniform2f(glGetUniformLocation(shader, "S"), SCR_WIDTH, SCR_HEIGHT);
-
-    sym_glUniform1f(SHADER_UNIFORM_c, cosYaw);
-    sym_glUniform1f(SHADER_UNIFORM_d, cosPitch);
-    sym_glUniform1f(SHADER_UNIFORM_e, sinYaw);
-    sym_glUniform1f(SHADER_UNIFORM_g, sinPitch);
+    sym_glUniform4f(SHADER_UNIFORM_c, cosYaw, cosPitch, sinYaw, sinPitch);
     sym_glUniform2f(SHADER_UNIFORM_r, (SCR_WIDTH * FOV) / 214.f, (SCR_HEIGHT * FOV) / 120.f);
     sym_glUniform3f(SHADER_UNIFORM_P, playerPosX, playerPosY, playerPosZ);
 
@@ -671,10 +666,10 @@ void _start()
     sym_glTexImage2D = (glTexImage2D_t)dlsym(libGL, "glTexImage2D");
     sym_glActiveTexture = (glActiveTexture_t)dlsym(libGL, "glActiveTexture");
     sym_glUniform1i = (glUniform1i_t)dlsym(libGL, "glUniform1i");
-    sym_glUniform1f = (glUniform1f_t)dlsym(libGL, "glUniform1f");
     sym_glUniform2f = (glUniform2f_t)dlsym(libGL, "glUniform2f");
     sym_glUniform3f = (glUniform3f_t)dlsym(libGL, "glUniform3f");
     sym_glUniform3i = (glUniform3i_t)dlsym(libGL, "glUniform3i");
+    sym_glUniform4f = (glUniform4f_t)dlsym(libGL, "glUniform4f");
     sym_glRecti = (glRecti_t)dlsym(libGL, "glRecti");
 
 #ifdef DEBUG_GL

@@ -3,7 +3,7 @@
 // NOTE: we have to use short var names as the shader optimizer can't change uniform names
 
 // camera stuff
-uniform float c, d, e, g; // cosYaw, cosPitch, sinYaw, sinPitch
+uniform vec4 c;     // x: cosYaw, y: cosPitch, z: sinYaw, w: sinPitch
 uniform vec2 r;     // frustumDiv
 uniform vec3 P;     // Position
 
@@ -35,14 +35,15 @@ void main()
 
     // rotate frustum space to world space
     vec2 offset = (vec2(gl_FragCoord) - vec2(428, 240)) / r;
-    vec3 rayDir = vec3(offset.x * c + (d - offset.y * g) * e,
-                       -offset.y * d - g,
-                       (d - offset.y * g) * c - offset.x * e);
+    float wy = c.y - offset.y * c.w;
+    vec3 rayDir = vec3(offset.x * c.x + wy * c.z,
+                       -offset.y * c.y - c.w,
+                       wy * c.x - offset.x * c.z);
 
     // raymarch outputs
 
     // the distance to the closest voxel boundary in units of rayDir
-    vec3 dist = (-fract(P) + step(vec3(0), rayDir)) / rayDir;
+    vec3 dist = (step(vec3(0), rayDir) - fract(P)) / rayDir;
 
     float rayTravelDist = 0;
 
@@ -67,7 +68,7 @@ void main()
         }
 
         // move the hit pos back if we hit a negative side
-        hitPos[axis] -= step(0, -rayDir[axis]);
+        hitPos[axis] -= step(rayDir[axis], 0);
 
         // get block from world
         texFetch.x += texture(W, hitPos.yxz / 64).x * 0xFF;
@@ -79,7 +80,7 @@ void main()
         texFetch = abs(fract(texFetch) - .5);
 
         // highlight hovered block
-        Z += ivec3(hitPos) == b && max(texFetch.x, texFetch.y) > .44 ? 9 : 0;
+        Z += trunc(hitPos) == b && max(texFetch.x, texFetch.y) > .44 ? 9 : 0;
 
         if (Z.a > 0) { // pixel is not transparent, so output color
             
