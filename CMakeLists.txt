@@ -22,6 +22,8 @@ target_include_directories(Minecraft4k PRIVATE ${CMAKE_BINARY_DIR})
 target_compile_options(Minecraft4k PRIVATE -m32 -Os -Winline -Wall -Wextra -Wno-incompatible-pointer-types -fno-pie -no-pie -fno-plt -fno-stack-protector -ffast-math -march=nocona -nostartfiles -fdata-sections)
 
 target_link_options(Minecraft4k PRIVATE -m32 -T "${CMAKE_SOURCE_DIR}/linker.ld" -z max-page-size=64 -nostartfiles --data-sections -nodefaultlibs -Wl,--gc-sections)
+
+# needed for dlsym
 target_link_libraries(Minecraft4k PRIVATE c)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -34,6 +36,7 @@ endif()
 
 add_custom_command(
     TARGET Minecraft4k POST_BUILD
+    COMMAND patchelf --shrink-rpath $<TARGET_FILE:Minecraft4k>
     COMMAND ${CMAKE_STRIP} --remove-section=.note.gnu.property --remove-section=.note.gnu.build-id --remove-section=.gnu.hash --remove-section=.fini --remove-section=.init_array --remove-section=.got --remove-section=.discard --remove-section=.eh_frame --remove-section=.got.plt --remove-section=.comment $<TARGET_FILE:Minecraft4k>
     COMMAND strip -s $<TARGET_FILE:Minecraft4k>
     COMMAND sstrip -z $<TARGET_FILE:Minecraft4k>

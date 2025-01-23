@@ -20,6 +20,7 @@
       elfkickers
       mono
       nasm
+      patchelf
     ];
 
     deps = with pkgs; [
