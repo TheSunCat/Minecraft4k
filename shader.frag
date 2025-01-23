@@ -34,26 +34,23 @@ void main()
     // vec2 frustumRay = centerDist / r;
 
     // rotate frustum space to world space
-    vec3 rayDir = vec3((gl_FragCoord.x - 428) / r.x * c + (d + (-gl_FragCoord.y + 240) / r.y * g) * e,
-                       (-gl_FragCoord.y + 240) / r.y * d - g,
-                       (d + (-gl_FragCoord.y + 240) / r.y * g) * c - (gl_FragCoord.x - 428) / r.x * e);
+    vec2 offset = (vec2(gl_FragCoord) - vec2(428, 240)) / r;
+    vec3 rayDir = vec3(offset.x * c + (d - offset.y * g) * e,
+                       -offset.y * d - g,
+                       (d - offset.y * g) * c - offset.x * e);
 
     // raymarch outputs
 
     // the distance to the closest voxel boundary in units of rayDir
     vec3 dist = (-fract(P) + step(vec3(0), rayDir)) / rayDir;
 
-    float rayTravelDist = 0.f;
+    float rayTravelDist = 0;
 
-    while (rayTravelDist < 20) // TODO replace RENDER_DIST
+    while (rayTravelDist < 20)
     {
         int axis = (dist.y < dist.x) ? 1 + int(dist.y > dist.z) : 2 * int(dist.x > dist.z);
         rayTravelDist = dist[axis];
         dist[axis] += abs(1 / rayDir)[axis];
-
-        // exit check for performance, removed for code size :c
-        //if(!inWorld(ijk))
-        //    break;
 
         vec3 hitPos = P + rayDir * rayTravelDist;
         
@@ -69,25 +66,26 @@ void main()
                 texFetch.y += 2;
         }
 
-        // bit confusing: we repurpose hitPos to fetch the block that was hit
-        hitPos[axis] -= step(0., -rayDir[axis]);
+        // move the hit pos back if we hit a negative side
+        hitPos[axis] -= step(0, -rayDir[axis]);
 
         // get block from world
-        // TODO replace WORLD_DIMENSIONS
         texFetch.x += texture(W, hitPos.yxz / 64).x * 0xFF;
 
-        // TODO replace TEXTURE_RES
-        vec4 textureColor = texture(T, (trunc(texFetch * 16) + .5) / vec2(112, 48));
+        // fetch texture color from atlas
+        Z = texture(T, (trunc(texFetch * 16) + .5) / vec2(112, 48));
+
+        // confusing: repurpose texFetch into the block-center-relative pos
+        texFetch = abs(fract(texFetch) - .5);
 
         // highlight hovered block
-        // multiply by 9 to make sure it's white
-        textureColor += int(ivec3(hitPos) == b && max(abs(fract(texFetch) - .5).x, abs(fract(texFetch) - .5).y) > .44) * 9;
+        Z += ivec3(hitPos) == b && max(texFetch.x, texFetch.y) > .44 ? 9 : 0;
 
-        if (textureColor.a > 0) { // pixel is not transparent, so output color
+        if (Z.a > 0) { // pixel is not transparent, so output color
             
-            // TODO replace RENDER_DIST
-            Z += textureColor * (1-rayTravelDist / 20);
-            return;
+            // apply fog
+            Z *= 1-rayTravelDist / 20;
+            break;
         }
     }
 }
